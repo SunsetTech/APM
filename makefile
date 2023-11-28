@@ -1,14 +1,19 @@
-all: CPP CLCPP
+all: Binary
 
-.PHONY: CPP
-CPP:
-	@$(MAKE) -C C++
+.PHONY: imgui
+imgui:
+	@$(MAKE) -C ImGuiBuild
 
-.PHONY: CLCPP
-CLCPP:
-	@$(MAKE) -C CLC++
+.PHONY: tinywav
+tinywav:
+	@$(MAKE) -C tinywavBuild
+
+.PHONY: Binary
+Binary: imgui tinywav
+	@$(MAKE) -C Binary
 
 .PHONY: clean
 clean:
-	@$(MAKE) clean -C C++
-	@$(MAKE) clean -C CLC++
+	@$(MAKE) clean -C Binary
+	@$(MAKE) clean -C ImGuiBuild
+	@$(MAKE) clean -C tinywavBuild

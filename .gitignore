@@ -1,3 +1,4 @@
+*.a
 .clangd
 .vim-sessions/
 C++/Build/
