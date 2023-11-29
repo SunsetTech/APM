@@ -19,13 +19,14 @@ namespace APM {
 		this->JobsThread.join();
 	}
 	
-	void Engine::EnqueueJob(Scene::Description Scene, float TimeDelta, size_t Iterations, std::vector<float*> Outputs, std::atomic_bool* CompletionSignal) {
+	void Engine::EnqueueJob(Scene::Description Scene, float TimeDelta, size_t Iterations, std::vector<Output> Outputs, std::atomic_size_t* ProgressTracker, std::atomic_bool* CompletionSignal) {
 		std::lock_guard<std::mutex> lock(this->QueueMutex);
 		this->Jobs.push((Job){
 			.Scene = Scene,
 			.TimeDelta = TimeDelta,
 			.Iterations = Iterations,
 			.Outputs = Outputs,
+			.ProgressTracker = ProgressTracker,
 			.CompletionSignal = CompletionSignal,
 		});
 		this->JobCount++;
@@ -73,26 +74,54 @@ namespace APM {
 					}
 				}
 				
-				cl_event* CompletionEvents = (cl_event*)calloc(Tasks.size(), sizeof(cl_event));
+				cl_event* CompletionEvents = new cl_event[Tasks.size()];
+				cl_event* MapEvents = new cl_event[Tasks.size()];
+				cl_event* UnmapEvents = new cl_event[Tasks.size()];
 				for (size_t Iteration = 0; Iteration < CurrentJob.Iterations; Iteration++) {
+					cl_uint Timestep = (Iteration+1)%2;
+					//Process simulations
 					for (size_t TaskIndex = 0; TaskIndex < Tasks.size(); TaskIndex++) {
-						Tasks[TaskIndex]->EnqueueExecution(CurrentJob.TimeDelta, (Iteration+1)%2, 0, NULL, CompletionEvents + TaskIndex);
+						Tasks[TaskIndex]->EnqueueExecution(CurrentJob.TimeDelta, Timestep, 0, NULL, CompletionEvents + TaskIndex);
+						Tasks[TaskIndex]->EnqueueReadMemory(1, CompletionEvents + TaskIndex, MapEvents + TaskIndex);
 					}
-					clWaitForEvents(Tasks.size(), CompletionEvents);
 					for (size_t EventIndex = 0; EventIndex < Tasks.size(); EventIndex++) {
+						clWaitForEvents(1, MapEvents + EventIndex);
+						clReleaseEvent(MapEvents[EventIndex]);
 						clReleaseEvent(CompletionEvents[EventIndex]);
 					}
 					
+					//Process connections
 					for (size_t ConnectionIndex = 0; ConnectionIndex < CurrentJob.Scene.Connections.size(); ConnectionIndex++) {
 						Scene::Description::Connection Connection = CurrentJob.Scene.Connections[ConnectionIndex];
 						
 						Tasks[Connection.SinkObjectID]->SetSinkValue(
-							Connection.SinkPlugID, 
-							Tasks[Connection.SourceObjectID]->GetSourceValue(Connection.SourcePlugID)
+							Connection.SinkPlugID, Timestep,
+							Tasks[Connection.SourceObjectID]->GetSourceValue(Connection.SourcePlugID, Timestep)
 						);
 					}
+					
+					//Process outputs
+					for (size_t OutputIndex = 0; OutputIndex < CurrentJob.Outputs.size(); OutputIndex++) {
+						Output CurrentOutput = CurrentJob.Outputs[OutputIndex];
+						float Value = Tasks[CurrentOutput.Object]->GetSourceValue(CurrentOutput.Plug, Timestep);
+						CurrentOutput.Buffer[Iteration] = Value;
+					}
+					
+					//Commit changes
+					for (size_t TaskIndex = 0; TaskIndex < Tasks.size(); TaskIndex++) {
+						Tasks[TaskIndex]->EnqueueWriteMemory(0, NULL, UnmapEvents + TaskIndex);
+					}
+					for (size_t EventIndex = 0; EventIndex < Tasks.size(); EventIndex++) {
+						clWaitForEvents(1, UnmapEvents + EventIndex);
+						clReleaseEvent(UnmapEvents[EventIndex]);
+					}
+					
+					CurrentJob.ProgressTracker->store(Iteration); //TODO store -1 as first value that way we get proper notification when sample 0 is ready
+					CurrentJob.ProgressTracker->notify_all();
 				}
-				free(CompletionEvents);
+				delete[] CompletionEvents;
+				delete[] MapEvents;
+				delete[] UnmapEvents;
 				CurrentJob.CompletionSignal->store(true);
 				CurrentJob.CompletionSignal->notify_all();
 			}

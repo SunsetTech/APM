@@ -11,6 +11,17 @@ namespace APM {
 			return fmin(fmax(Val,Min),Max);
 		}
 		
+		template<typename PositionType, typename BoundType> unsigned int MapIndex(unsigned int Dimensions, const PositionType* Position, const BoundType* Bounds) {
+			BoundType Result = 0;
+			BoundType Multiplier = 1;
+			for (int Dimension = Dimensions-1; Dimension >= 0; Dimension--) {
+				Result += Wrap(Position[Dimension], (PositionType)Bounds[Dimension]) * Multiplier;
+				Multiplier *= Bounds[Dimension];
+			}
+			
+			return Result;
+		}
+		
 		template<unsigned int Dimensions, typename PositionType, typename BoundType> unsigned int MapIndex(const PositionType Position[Dimensions], const BoundType Bounds[Dimensions]) {//TODO make actually type safe somehow
 			BoundType Result = 0;
 			BoundType Multiplier = 1;

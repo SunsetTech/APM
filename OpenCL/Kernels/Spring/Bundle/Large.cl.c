@@ -11,15 +11,20 @@ __kernel void Spring_Bundle_Large( //Bundle of disconnected springs
 	float TimeDelta //6
 ) {
 	const unsigned int BundleBounds[] = {GroupBounds, SpacetimeBounds[0], SpacetimeBounds[1]};
-	const unsigned int FiberID = get_group_id(0);
-	const unsigned int MassID = get_group_id(1);
+	const unsigned int FiberID = get_global_id(0);
+	const unsigned int MassID = get_global_id(1);
 	int GroupGursor[] = {FiberID, 0, 0};
 	int ResultCursor[3] = {FiberID, Timestep, MassID};
-	Spacetime[MapIndex(2, ResultCursor, BundleBounds)] = Spring_NextState(
+	//printf("{%i, %i, %i}\n", BundleBounds[0], BundleBounds[1], BundleBounds[2]);
+	Spring_NodeState NewState = Spring_NextState(
 		SpringParameters, 
 		NodeParameters, 
 		Spacetime + MapIndex(3, GroupGursor, BundleBounds), SpacetimeBounds, 
 		MassID,
 		Timestep, TimeDelta
 	);
+	unsigned int ResultIndex = MapIndex(3, ResultCursor, BundleBounds);
+	//printf("(%i, %i, %i)=%i -> {%f, %f}\n", ResultCursor[0], ResultCursor[1], ResultCursor[2], ResultIndex, NewState.Position, NewState.Velocity);
+	Spacetime[ResultIndex].Position = NewState.Position;
+	Spacetime[ResultIndex].Velocity = NewState.Velocity;
 }

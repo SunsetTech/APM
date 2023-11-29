@@ -23,12 +23,12 @@ namespace APM::Scene::RenderDispatcher {
 			std::memcpy(
 				this->SpacetimeBuffer + Math::MapIndex<3>(SpacetimeCursor, SpacetimeBounds), 
 				this->Bundle->SpaceBuffer + Math::MapIndex<2>(SpaceCursor, SpaceBounds),
-				this->Bundle->FiberLength
+				this->Bundle->FiberLength*sizeof(Spring_NodeState)
 			);
 		}
 		
 		cl_int Err;
-		this->SpacetimeBufferCL = clCreateBuffer(Context, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, sizeof(Spring_NodeState) * Bundle->BufferLength * 2, this->SpacetimeBuffer, &Err);
+		this->SpacetimeBufferCL = clCreateBuffer(Context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, sizeof(Spring_NodeState) * Bundle->BufferLength * 2, this->SpacetimeBuffer, &Err);
 		CLUtils::PrintAndHaltIfError(Err);
 	}
 	
@@ -37,11 +37,15 @@ namespace APM::Scene::RenderDispatcher {
 		this->Queue = Queue; clRetainCommandQueue(Queue);
 		this->Kernel = Kernel; clRetainKernel(Kernel);
 		this->Bundle = Bundle;
+		this->SpacetimeBounds[0] = 2;
 		this->SpacetimeBounds[1] = Bundle->FiberLength;
 		cl_int Err;
 		this->NodeParameterBufferCL = clCreateBuffer(Context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(Spring_NodeParameters) * Bundle->BufferLength, Bundle->NodeParameterBuffer, &Err);
+		CLUtils::PrintAndHaltIfError(Err);
 		this->SpringParameterBufferCL = clCreateBuffer(Context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(Spring_SpringParameters) * Bundle->BufferLength, Bundle->SpringParameterBuffer, &Err);
+		CLUtils::PrintAndHaltIfError(Err);
 		this->SpacetimeBoundsCL = clCreateBuffer(Context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(cl_uint) * 2, this->SpacetimeBounds, &Err);
+		CLUtils::PrintAndHaltIfError(Err);
 		this->SetupSpacetimeBuffer();
 	}
 	
@@ -60,15 +64,51 @@ namespace APM::Scene::RenderDispatcher {
 		CLUtils::PrintAndHaltIfError(Err);
 		
 		size_t GlobalSize[] = {this->Bundle->FiberCount, this->Bundle->FiberLength};
-		Err = clEnqueueNDRangeKernel(this->Queue, this->Kernel, 2, NULL, GlobalSize, NULL, WaitEventCount, WaitEvents, CompletionEvent);
+		cl_event ExecutionEvent;
+		Err = clEnqueueNDRangeKernel(this->Queue, this->Kernel, 2, NULL, GlobalSize, NULL, WaitEventCount, WaitEvents, &ExecutionEvent);
+		CLUtils::PrintAndHaltIfError(Err);
+		Err = clEnqueueReadBuffer(this->Queue, this->SpacetimeBufferCL, false, 0, sizeof(Spring_NodeState) * 2 * this->Bundle->BufferLength, this->SpacetimeBuffer, 1, &ExecutionEvent, CompletionEvent);
 		CLUtils::PrintAndHaltIfError(Err);
 	}
 	
-	float SpringBundle::Task::GetSourceValue(size_t ID) { //TODO
-		return 0;
+	void SpringBundle::Task::EnqueueReadMemory(cl_uint WaitEventCount, const cl_event *WaitEvents, cl_event *CompletionEvent) {
+		cl_int Err = clEnqueueReadBuffer(
+			this->Queue,
+			this->SpacetimeBufferCL,
+			false,
+			0, sizeof(Spring_NodeState) * 2 * this->Bundle->BufferLength,
+			this->SpacetimeBuffer,
+			WaitEventCount, WaitEvents, CompletionEvent
+		);
+		CLUtils::PrintAndHaltIfError(Err);
 	}
 	
-	void SpringBundle::Task::SetSinkValue(size_t ID, float Value) { //TODO
+	void SpringBundle::Task::EnqueueWriteMemory(cl_uint WaitEventCount, const cl_event *WaitEvents, cl_event *CompletionEvent) {
+		cl_int Err = clEnqueueWriteBuffer(
+			this->Queue,
+			this->SpacetimeBufferCL,
+			false,
+			0, sizeof(Spring_NodeState) * 2 * this->Bundle->BufferLength,
+			this->SpacetimeBuffer,
+			WaitEventCount, WaitEvents, CompletionEvent
+		);
+		CLUtils::PrintAndHaltIfError(Err);
+	}
+	
+	float SpringBundle::Task::GetSourceValue(size_t ID, size_t Timestep) { //TODO
+		Object::SpringBundle::Plug CurrentPlug = this->Bundle->Outputs[ID];
+		cl_uint Cursor[] = {CurrentPlug.FiberID, (cl_uint)Timestep, CurrentPlug.NodeID};
+		cl_uint Bounds[] = {this->Bundle->FiberCount, 2, this->Bundle->FiberLength};
+		cl_uint BufferIndex = Math::MapIndex<3>(Cursor, Bounds);
+		float Position = this->SpacetimeBuffer[BufferIndex].Position;
+		return Position - CurrentPlug.Center;
+	}
+	
+	void SpringBundle::Task::SetSinkValue(size_t ID, size_t Timestep, float Value) { //TODO
+		Object::SpringBundle::Plug CurrentPlug = this->Bundle->Inputs[ID];
+		cl_uint Cursor[] = {CurrentPlug.FiberID, (cl_uint)Timestep, CurrentPlug.NodeID};
+		cl_uint Bounds[] = {this->Bundle->FiberCount, 2, this->Bundle->FiberLength};
+		this->SpacetimeBuffer[Math::MapIndex<3>(Cursor, Bounds)].Position = CurrentPlug.Center + Value;
 	}
 	
 	SpringBundle::Task::~Task() {

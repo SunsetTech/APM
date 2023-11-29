@@ -1,8 +1,7 @@
 *.a
+*.d
+*.o
+Binary/APM
 .clangd
 .vim-sessions/
-C++/Build/
-C++/FDM_Synth
-CLC++/Build/
-CLC++/Kernels.spv
 Output.wav

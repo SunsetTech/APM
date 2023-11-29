@@ -13,8 +13,10 @@ namespace APM::Scene::RenderDispatcher {
 				
 				public:
 					virtual void EnqueueExecution(float TimeDelta, cl_uint Timestep, cl_uint WaitEventCount, const cl_event* WaitEvents, cl_event* CompletionEvent) =0;
-					virtual void SetSinkValue(size_t ID, float Value) =0;
-					virtual float GetSourceValue(size_t ID) =0;
+					virtual void EnqueueReadMemory(cl_uint WaitEventCount, const cl_event* WaitEvents, cl_event* CompletionEvent) =0;
+					virtual void EnqueueWriteMemory(cl_uint WaitEventCount, const cl_event* WaitEvents, cl_event* CompletionEvent) =0;
+					virtual void SetSinkValue(size_t ID, size_t Timestep, float Value) =0;
+					virtual float GetSourceValue(size_t ID, size_t Timestep) =0;
 			};
 			
 			cl_context Context;

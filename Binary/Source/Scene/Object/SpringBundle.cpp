@@ -7,9 +7,9 @@ namespace APM::Scene::Object {
 		this->FiberCount = FiberCount;
 		this->FiberLength = FiberLength;
 		this->BufferLength = FiberCount * FiberLength;
-		this->SpringParameterBuffer = (Spring_SpringParameters*)calloc(BufferLength, sizeof(Spring_SpringParameters));
-		this->NodeParameterBuffer = (Spring_NodeParameters*)calloc(BufferLength, sizeof(Spring_NodeParameters));
-		this->SpaceBuffer = (Spring_NodeState*)calloc(BufferLength, sizeof(Spring_NodeState));
+		this->SpringParameterBuffer = new Spring_SpringParameters[this->BufferLength];
+		this->NodeParameterBuffer = new Spring_NodeParameters[this->BufferLength];
+		this->SpaceBuffer = new Spring_NodeState[this->BufferLength];
 	}
 	
 	size_t SpringBundle::MapIndex(cl_uint Fiber, cl_uint Node) {
@@ -19,6 +19,12 @@ namespace APM::Scene::Object {
 	}
 	
 	size_t SpringBundle::GetTaskSize() {
-		return this->FiberCount * this->FiberLength;
+		return this->BufferLength;
+	}
+	
+	SpringBundle::~SpringBundle() {
+		delete this->SpaceBuffer;
+		delete this->NodeParameterBuffer;
+		delete this->SpringParameterBuffer;
 	}
 }

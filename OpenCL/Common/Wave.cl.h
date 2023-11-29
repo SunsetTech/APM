@@ -3,11 +3,11 @@
 typedef struct {
 	float WaveVelocity;
 	float TransferEfficiency;
-} FDM_CellParameters;
+} Wave_CellParameters;
 
-float FDM_ComputeNextValue(
+float Wave_ComputeNextValue(
 	int Dimensions,
-	const FDM_CellParameters* GridParameters,
+	const Wave_CellParameters* GridParameters,
 	const float* Cells,
 	int* Position, const unsigned int* Bounds,
 	float SpacetimeDelta

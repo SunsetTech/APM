@@ -14,9 +14,8 @@ __kernel void FDM_3D_Large(
 	int CellPosition[4] = {(int)Timestep-1, 0, 0, 0};
 	for (unsigned int Dimension = 0; Dimension < 3; Dimension++) {
 		CellPosition[Dimension+1] = get_global_id(Dimension);
-		//printf("%i:(%i+%i)=%i\n",Dimension+1,get_global_id(Dimension),get_local_id(Dimension),CellPosition[Dimension+1]);
 	}
-	//printf("%i %i %i\n", CellPosition[1], CellPosition[2], CellPosition[3]);
+	
 	float Next = FDM_ComputeNextValue(
 		3,
 		SpacetimeParameters, Spacetime,

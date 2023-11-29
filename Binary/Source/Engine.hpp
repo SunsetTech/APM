@@ -12,16 +12,22 @@
 namespace APM {
 	class Engine {
 		public:
+			struct Output {
+				size_t Object, Plug;
+				float* Buffer;
+			};
+			
 			Engine(std::vector<ExecutionBin*> ExecutionBins);
 			void LaunchJobsThread();
 			void StopJobsThread();
-			void EnqueueJob(Scene::Description Scene, float TimeDelta, size_t Iterations, std::vector<float*> Outputs, std::atomic_bool* CompletionEvent);
+			void EnqueueJob(Scene::Description Scene, float TimeDelta, size_t Iterations, std::vector<Output> Outputs, std::atomic_size_t* ProgressTracker, std::atomic_bool* CompletionEvent);
 		private:
 			struct Job {
 				Scene::Description Scene;
 				float TimeDelta;
 				size_t Iterations;
-				std::vector<float*> Outputs;
+				std::vector<Output> Outputs;
+				std::atomic_size_t* ProgressTracker;
 				std::atomic_bool* CompletionSignal;
 			};
 			

@@ -38,7 +38,7 @@ Spring_NodeState Spring_NextState( //make not a ring
 		float TotalAcceleration = (LeftAcceleration + RightAcceleration);
 		float NewVelocity = (CurrentNodeParameters.Damping * CurrentNode.Velocity) + TotalAcceleration;
 		float NewPosition = CurrentPosition + NewVelocity * TimeDelta;
-		
+		//printf("%f->%f\n", CurrentPosition,NewPosition);	
 		return (Spring_NodeState){NewPosition, NewVelocity};
 	} else {
 		float CurrentPosition = Spacetime[MapIndex(2, Cursor, SpacetimeBounds)].Position;
