@@ -21,6 +21,7 @@ namespace APM {
 			void LaunchJobsThread();
 			void StopJobsThread();
 			void EnqueueJob(Scene::Description Scene, float TimeDelta, size_t Iterations, std::vector<Output> Outputs, std::atomic_size_t* ProgressTracker, std::atomic_bool* CompletionEvent);
+			static void ProcessIteration(std::vector<Scene::RenderDispatcher::Base::Task*> Tasks, std::vector<Scene::Description::Connection> Connections, std::vector<Output> Outputs, cl_uint Iteration, float TimeDelta);
 		private:
 			struct Job {
 				Scene::Description Scene;

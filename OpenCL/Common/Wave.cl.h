@@ -1,14 +1,14 @@
 #pragma once
 
 typedef struct {
-	float WaveVelocity;
-	float TransferEfficiency;
+	double WaveVelocity;
+	double TransferEfficiency;
 } Wave_CellParameters;
 
-float Wave_ComputeNextValue(
+double Wave_ComputeNextValue(
 	int Dimensions,
 	const Wave_CellParameters* GridParameters,
-	const float* Cells,
+	const double* Cells,
 	int* Position, const unsigned int* Bounds,
-	float SpacetimeDelta
+	double SpacetimeDelta
 ); 

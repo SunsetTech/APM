@@ -15,7 +15,7 @@ namespace APM::Scene::RenderDispatcher {
 		int SpacetimeCursor[] = {0, 0, 0};
 		unsigned int SpaceBounds[] = {this->Bundle->FiberCount, this->Bundle->FiberLength};
 		unsigned int SpacetimeBounds[] = {this->Bundle->FiberCount, 2, this->Bundle->FiberLength};
-		this->SpacetimeBuffer = (Spring_NodeState*)calloc(this->Bundle->BufferLength*2, sizeof(Spring_NodeState));
+		this->SpacetimeBuffer = new Spring_NodeState[this->Bundle->BufferLength * 2];
 		for (unsigned int FiberIndex = 0; FiberIndex < this->Bundle->FiberCount; FiberIndex++) {
 			SpaceCursor[0] = FiberIndex;
 			SpacetimeCursor[0] = FiberIndex;
@@ -64,10 +64,7 @@ namespace APM::Scene::RenderDispatcher {
 		CLUtils::PrintAndHaltIfError(Err);
 		
 		size_t GlobalSize[] = {this->Bundle->FiberCount, this->Bundle->FiberLength};
-		cl_event ExecutionEvent;
-		Err = clEnqueueNDRangeKernel(this->Queue, this->Kernel, 2, NULL, GlobalSize, NULL, WaitEventCount, WaitEvents, &ExecutionEvent);
-		CLUtils::PrintAndHaltIfError(Err);
-		Err = clEnqueueReadBuffer(this->Queue, this->SpacetimeBufferCL, false, 0, sizeof(Spring_NodeState) * 2 * this->Bundle->BufferLength, this->SpacetimeBuffer, 1, &ExecutionEvent, CompletionEvent);
+		Err = clEnqueueNDRangeKernel(this->Queue, this->Kernel, 2, NULL, GlobalSize, NULL, WaitEventCount, WaitEvents, CompletionEvent);
 		CLUtils::PrintAndHaltIfError(Err);
 	}
 	

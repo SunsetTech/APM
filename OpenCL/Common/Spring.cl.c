@@ -20,15 +20,15 @@ Spring_NodeState Spring_NextState( //make not a ring
 	Cursor[1] -= 1;
 	
 	Spring_NodeParameters CurrentNodeParameters = NodeParameters[MassID];
-	Spring_SpringParameters LeftSpringParameters = SpringParameters[MassID];
-	Spring_SpringParameters RightSpringParameters = SpringParameters[Wrap(MassID+1, SpatialBounds)];
-	
-	float DistanceToLeft = CurrentNode.Position - LeftNode.Position;
-	float LeftSpringDisplacement = LeftSpringParameters.RestLength - fabs(DistanceToLeft);
-	float DistanceToRight = RightNode.Position - CurrentNode.Position;
-	float RightSpringDisplacement = RightSpringParameters.RestLength - fabs(DistanceToRight);
 	
 	if (!CurrentNodeParameters.Fixed) {
+		Spring_SpringParameters LeftSpringParameters = SpringParameters[MassID];
+		Spring_SpringParameters RightSpringParameters = SpringParameters[Wrap(MassID+1, SpatialBounds)];
+		
+		float DistanceToLeft = CurrentNode.Position - LeftNode.Position;
+		float LeftSpringDisplacement = LeftSpringParameters.RestLength - fabs(DistanceToLeft);
+		float DistanceToRight = RightNode.Position - CurrentNode.Position;
+		float RightSpringDisplacement = RightSpringParameters.RestLength - fabs(DistanceToRight);
 		float CurrentPosition = CurrentNode.Position;
 		
 		Cursor[0] += 1;
@@ -41,7 +41,8 @@ Spring_NodeState Spring_NextState( //make not a ring
 		//printf("%f->%f\n", CurrentPosition,NewPosition);	
 		return (Spring_NodeState){NewPosition, NewVelocity};
 	} else {
-		float CurrentPosition = Spacetime[MapIndex(2, Cursor, SpacetimeBounds)].Position;
+		float CurrentPosition = CurrentNode.Position;
+		//printf("fixed %f->%f\n",CurrentPosition, CurrentPosition);
 		return (Spring_NodeState){CurrentPosition, 0.0f};
 	}
 }

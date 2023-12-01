@@ -12,7 +12,7 @@ namespace APM::Scene::RenderDispatcher {
 					cl_command_queue Queue;
 					cl_kernel Kernel;
 					Object::WaveStructure* Structure;
-					float* SpacetimeBuffer;
+					double* SpacetimeBuffer;
 					cl_uint* SpacetimeBounds;
 					cl_mem ParameterBufferCL, SpacetimeBufferCL, SpacetimeBoundsCL;
 					void SetupSpacetimeBuffer();

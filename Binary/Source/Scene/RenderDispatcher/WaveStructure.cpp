@@ -1,21 +1,23 @@
 #include "WaveStructure.hpp"
 
 #include <cstring>
+#include <cstdio>
 #include <typeinfo>
 
 #include "../../CLUtils.hpp"
 #include "../../Math.hpp"
+#include <cassert>
 
 namespace APM::Scene::RenderDispatcher {
 	void WaveStructure::Task::SetupSpacetimeBuffer() {
-		this->SpacetimeBuffer = new float[this->Structure->BufferLength*2];
+		this->SpacetimeBuffer = new double[this->Structure->BufferLength*2];
 		std::memcpy(
 			this->SpacetimeBuffer,
 			this->Structure->SpaceBuffer,
-			this->Structure->BufferLength * sizeof(float)
+			this->Structure->BufferLength * sizeof(double)
 		);
 		cl_int Err;
-		this->SpacetimeBufferCL = clCreateBuffer(this->Context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, sizeof(float) * this->Structure->BufferLength * 2, this->SpacetimeBuffer, &Err);
+		this->SpacetimeBufferCL = clCreateBuffer(this->Context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, sizeof(double) * this->Structure->BufferLength * 2, this->SpacetimeBuffer, &Err);
 		CLUtils::PrintAndHaltIfError(Err);
 	}
 	
@@ -53,10 +55,8 @@ namespace APM::Scene::RenderDispatcher {
 		for (unsigned int Dimension = 0; Dimension < this->Structure->Dimensions; Dimension++) {
 			GlobalSize[Dimension] = this->Structure->SpatialBounds[Dimension];
 		}
-		cl_event ExecutionEvent;
-		Err = clEnqueueNDRangeKernel(this->Queue, this->Kernel, this->Structure->Dimensions, NULL, GlobalSize, NULL, WaitEventCount, WaitEvents, &ExecutionEvent);
-		CLUtils::PrintAndHaltIfError(Err);
-		Err = clEnqueueReadBuffer(this->Queue, this->SpacetimeBufferCL, false, 0, sizeof(float) * 2 * this->Structure->BufferLength, this->SpacetimeBuffer, 1, &ExecutionEvent, CompletionEvent);
+		//cl_event ExecutionEvent;
+		Err = clEnqueueNDRangeKernel(this->Queue, this->Kernel, this->Structure->Dimensions, NULL, GlobalSize, NULL, WaitEventCount, WaitEvents, CompletionEvent);
 		CLUtils::PrintAndHaltIfError(Err);
 	}
 	
@@ -65,7 +65,7 @@ namespace APM::Scene::RenderDispatcher {
 			this->Queue,
 			this->SpacetimeBufferCL,
 			false,
-			0, sizeof(float) * 2 * this->Structure->BufferLength,
+			0, sizeof(double) * 2 * this->Structure->BufferLength,
 			this->SpacetimeBuffer,
 			WaitEventCount, WaitEvents, CompletionEvent
 		);
@@ -77,7 +77,7 @@ namespace APM::Scene::RenderDispatcher {
 			this->Queue,
 			this->SpacetimeBufferCL,
 			false,
-			0, sizeof(float) * 2 * this->Structure->BufferLength,
+			0, sizeof(double) * 2 * this->Structure->BufferLength,
 			this->SpacetimeBuffer,
 			WaitEventCount, WaitEvents, CompletionEvent
 		);
@@ -85,11 +85,12 @@ namespace APM::Scene::RenderDispatcher {
 	}
 	
 	float WaveStructure::Task::GetSourceValue(size_t ID, size_t Timestep) { //TODO
-		Object::WaveStructure::Plug CurrentPlug = this->Structure->Inputs[ID];
+		Object::WaveStructure::Plug CurrentPlug = this->Structure->Outputs[ID];
 		cl_uint* Cursor = new cl_uint[this->Structure->Dimensions+1];
 		Cursor[0] = Timestep;
 		for (unsigned int Dimension = 0; Dimension < this->Structure->Dimensions; Dimension++) {
-			Cursor[Dimension+1] = CurrentPlug.Position[Dimension];
+			cl_uint Value = CurrentPlug.Position[Dimension];
+			Cursor[Dimension+1] = Value;
 		}
 		
 		float Value = this->SpacetimeBuffer[Math::MapIndex<3>(Cursor, this->SpacetimeBounds)];

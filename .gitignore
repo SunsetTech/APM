@@ -1,7 +1,7 @@
 *.a
 *.d
 *.o
+*.wav
 Binary/APM
 .clangd
 .vim-sessions/
-Output.wav
