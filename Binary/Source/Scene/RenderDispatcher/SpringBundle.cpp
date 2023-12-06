@@ -10,7 +10,7 @@
 #include "../../Math.hpp"
 
 namespace APM::Scene::RenderDispatcher {
-	void SpringBundle::Task::SetupSpacetimeBuffer() {
+	void SpringBundle::SBTask::SetupSpacetimeBuffer() {
 		int SpaceCursor[] = {0, 0};
 		int SpacetimeCursor[] = {0, 0, 0};
 		unsigned int SpaceBounds[] = {this->Bundle->FiberCount, this->Bundle->FiberLength};
@@ -28,28 +28,26 @@ namespace APM::Scene::RenderDispatcher {
 		}
 		
 		cl_int Err;
-		this->SpacetimeBufferCL = clCreateBuffer(Context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, sizeof(Spring_NodeState) * Bundle->BufferLength * 2, this->SpacetimeBuffer, &Err);
-		CLUtils::PrintAndHaltIfError(Err);
+		this->SpacetimeBufferCL = clCreateBuffer(this->Context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, sizeof(Spring_NodeState) * Bundle->BufferLength * 2, this->SpacetimeBuffer, &Err);
+		CLUtils::PrintAndHaltIfError("Creating SpacetimeBufferCL in SpringBundle task", Err);
 	}
 	
-	SpringBundle::Task::Task(cl_context Context, cl_command_queue Queue, cl_kernel Kernel, Object::SpringBundle* Bundle) {
-		this->Context = Context; clRetainContext(Context);
-		this->Queue = Queue; clRetainCommandQueue(Queue);
-		this->Kernel = Kernel; clRetainKernel(Kernel);
+	SpringBundle::SBTask::SBTask(cl_context Context, cl_command_queue Queue, cl_kernel Kernel, Object::SpringBundle* Bundle): Task(Context, Queue, Kernel) {
 		this->Bundle = Bundle;
 		this->SpacetimeBounds[0] = 2;
 		this->SpacetimeBounds[1] = Bundle->FiberLength;
 		cl_int Err;
 		this->NodeParameterBufferCL = clCreateBuffer(Context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(Spring_NodeParameters) * Bundle->BufferLength, Bundle->NodeParameterBuffer, &Err);
-		CLUtils::PrintAndHaltIfError(Err);
+		CLUtils::PrintAndHaltIfError("Creating NodeParameterBufferCL in SpringBundle task", Err);
 		this->SpringParameterBufferCL = clCreateBuffer(Context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(Spring_SpringParameters) * Bundle->BufferLength, Bundle->SpringParameterBuffer, &Err);
-		CLUtils::PrintAndHaltIfError(Err);
+		CLUtils::PrintAndHaltIfError("Creating SpringParameterBufferCL in SpringBundle task", Err);
 		this->SpacetimeBoundsCL = clCreateBuffer(Context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(cl_uint) * 2, this->SpacetimeBounds, &Err);
-		CLUtils::PrintAndHaltIfError(Err);
+		CLUtils::PrintAndHaltIfError("fuck off", Err);
+		printf("Waaaa %p %p %p\n", this, Context, this->Context);
 		this->SetupSpacetimeBuffer();
 	}
 	
-	void SpringBundle::Task::EnqueueExecution(cl_float TimeDelta, cl_uint Timestep, cl_uint WaitEventCount, const cl_event *WaitEvents, cl_event *CompletionEvent) {
+	void SpringBundle::SBTask::EnqueueExecution(cl_float TimeDelta, cl_uint Timestep, cl_uint WaitEventCount, const cl_event *WaitEvents, cl_event *CompletionEvent) {
 		const CLUtils::ArgumentDefintion Arguments[] = {
 			{sizeof(cl_mem), &SpringParameterBufferCL},
 			{sizeof(cl_mem), &NodeParameterBufferCL},
@@ -61,14 +59,14 @@ namespace APM::Scene::RenderDispatcher {
 		};
 		
 		cl_int Err = CLUtils::SetKernelArguments(this->Kernel, std::size(Arguments), Arguments);
-		CLUtils::PrintAndHaltIfError(Err);
+		CLUtils::PrintAndHaltIfError("Setting kernel arguments in SpringBundle task", Err);
 		
 		size_t GlobalSize[] = {this->Bundle->FiberCount, this->Bundle->FiberLength};
 		Err = clEnqueueNDRangeKernel(this->Queue, this->Kernel, 2, NULL, GlobalSize, NULL, WaitEventCount, WaitEvents, CompletionEvent);
-		CLUtils::PrintAndHaltIfError(Err);
+		CLUtils::PrintAndHaltIfError("Enqueuing execution in SpringBundle task", Err);
 	}
 	
-	void SpringBundle::Task::EnqueueReadMemory(cl_uint WaitEventCount, const cl_event *WaitEvents, cl_event *CompletionEvent) {
+	void SpringBundle::SBTask::EnqueueReadyMemory(cl_uint Timestep, cl_uint WaitEventCount, const cl_event *WaitEvents, cl_event *CompletionEvent) {
 		cl_int Err = clEnqueueReadBuffer(
 			this->Queue,
 			this->SpacetimeBufferCL,
@@ -77,10 +75,10 @@ namespace APM::Scene::RenderDispatcher {
 			this->SpacetimeBuffer,
 			WaitEventCount, WaitEvents, CompletionEvent
 		);
-		CLUtils::PrintAndHaltIfError(Err);
+		CLUtils::PrintAndHaltIfError("awoo",Err);
 	}
 	
-	void SpringBundle::Task::EnqueueWriteMemory(cl_uint WaitEventCount, const cl_event *WaitEvents, cl_event *CompletionEvent) {
+	void SpringBundle::SBTask::EnqueueFlushMemory(cl_uint Timestep, cl_uint WaitEventCount, const cl_event *WaitEvents, cl_event *CompletionEvent) {
 		cl_int Err = clEnqueueWriteBuffer(
 			this->Queue,
 			this->SpacetimeBufferCL,
@@ -89,10 +87,10 @@ namespace APM::Scene::RenderDispatcher {
 			this->SpacetimeBuffer,
 			WaitEventCount, WaitEvents, CompletionEvent
 		);
-		CLUtils::PrintAndHaltIfError(Err);
+		CLUtils::PrintAndHaltIfError("bark", Err);
 	}
 	
-	float SpringBundle::Task::GetSourceValue(size_t ID, size_t Timestep) { //TODO
+	float SpringBundle::SBTask::GetSourceValue(size_t ID, size_t Timestep) { //TODO
 		Object::SpringBundle::Plug CurrentPlug = this->Bundle->Outputs[ID];
 		cl_uint Cursor[] = {CurrentPlug.FiberID, (cl_uint)Timestep, CurrentPlug.NodeID};
 		cl_uint Bounds[] = {this->Bundle->FiberCount, 2, this->Bundle->FiberLength};
@@ -101,14 +99,14 @@ namespace APM::Scene::RenderDispatcher {
 		return Position - CurrentPlug.Center;
 	}
 	
-	void SpringBundle::Task::SetSinkValue(size_t ID, size_t Timestep, float Value) { //TODO
+	void SpringBundle::SBTask::SetSinkValue(size_t ID, size_t Timestep, float Value) { //TODO
 		Object::SpringBundle::Plug CurrentPlug = this->Bundle->Inputs[ID];
 		cl_uint Cursor[] = {CurrentPlug.FiberID, (cl_uint)Timestep, CurrentPlug.NodeID};
 		cl_uint Bounds[] = {this->Bundle->FiberCount, 2, this->Bundle->FiberLength};
 		this->SpacetimeBuffer[Math::MapIndex<3>(Cursor, Bounds)].Position = CurrentPlug.Center + Value;
 	}
 	
-	SpringBundle::Task::~Task() {
+	SpringBundle::SBTask::~SBTask() {
 		clReleaseMemObject(this->SpacetimeBufferCL);
 		clReleaseMemObject(this->SpacetimeBoundsCL);
 		clReleaseMemObject(this->SpringParameterBufferCL);
@@ -132,7 +130,7 @@ namespace APM::Scene::RenderDispatcher {
 		
 		cl_int Err;
 		this->Kernel = clCreateKernel(Program, "Spring_Bundle_Large", &Err);
-		CLUtils::PrintAndHaltIfError(Err);
+		CLUtils::PrintAndHaltIfError("arf", Err);
 	}
 
 	bool SpringBundle::Handles(Object::Base* Object) {
@@ -140,7 +138,7 @@ namespace APM::Scene::RenderDispatcher {
 	}
 	
 	Base::Task* SpringBundle::CreateTask(Object::Base* TaskObject) {
-		return new SpringBundle::Task(this->Context, this->Queue, this->Kernel, dynamic_cast<Object::SpringBundle*>(TaskObject));
+		return new SpringBundle::SBTask(this->Context, this->Queue, this->Kernel, dynamic_cast<Object::SpringBundle*>(TaskObject));
 	}
 
 	SpringBundle::~SpringBundle() {

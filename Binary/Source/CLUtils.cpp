@@ -143,9 +143,9 @@ namespace CLUtils {
 		}
 	}
 
-	void PrintAndHaltIfError(cl_int Err) {
+	void PrintAndHaltIfError(const char* Activity, cl_int Err) {
 		if (Err != CL_SUCCESS) {
-			printf("%s\n",GetErrorName(Err));
+			printf("%s: %s\n", Activity, GetErrorName(Err));
 			exit(-1);
 		}
 	}

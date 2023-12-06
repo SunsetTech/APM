@@ -18,7 +18,7 @@ namespace APM::Scene::Object {
 			cl_uint* SpatialBounds;
 			cl_uint BufferLength;
 			Wave_CellParameters* CellParameterBuffer;
-			double* SpaceBuffer;
+			Wave_ValueType* SpaceBuffer;
 			
 			WaveStructure(cl_uint Dimensions, cl_uint* SpatialBounds);
 			size_t MapIndex(cl_uint* Position);

@@ -4,6 +4,8 @@
 #include <cstdlib>
 #include <ctime>
 
+#include "tinywav.h"
+
 namespace Utils {
 	char* ReadFile(const char* Filename, bool AddNullTerminator, size_t* Length) { //thanks to whoever chatgpt stole this from
 		FILE* File = fopen(Filename, "r");
@@ -37,6 +39,18 @@ namespace Utils {
 		
 		fclose(File);
 		return Content;
+	}
+	
+	void WriteWAV_File(const char *Filename, unsigned int SampleRate, unsigned char ChannelCount, size_t Length, float** Channels) {
+		TinyWav OutputHandle;
+		tinywav_open_write(
+			&OutputHandle,
+			ChannelCount, SampleRate,
+			TW_FLOAT32, TW_SPLIT,
+			Filename
+		);
+		tinywav_write_f(&OutputHandle, Channels, Length);
+		tinywav_close_write(&OutputHandle);
 	}
 	
 	namespace Time {

@@ -41,7 +41,7 @@ namespace APM {
 		//Process simulations
 		for (size_t TaskIndex = 0; TaskIndex < Tasks.size(); TaskIndex++) {
 			Tasks[TaskIndex]->EnqueueExecution(TimeDelta, Timestep, 0, NULL, CompletionEvents + TaskIndex);
-			Tasks[TaskIndex]->EnqueueReadMemory(1, CompletionEvents + TaskIndex, MapEvents + TaskIndex);
+			Tasks[TaskIndex]->EnqueueReadyMemory(Timestep, 1, CompletionEvents + TaskIndex, MapEvents + TaskIndex);
 		}
 		for (size_t EventIndex = 0; EventIndex < Tasks.size(); EventIndex++) {
 			clWaitForEvents(1, MapEvents + EventIndex);
@@ -67,7 +67,7 @@ namespace APM {
 		
 		//Commit changes
 		for (size_t TaskIndex = 0; TaskIndex < Tasks.size(); TaskIndex++) {
-			Tasks[TaskIndex]->EnqueueWriteMemory(0, NULL, UnmapEvents + TaskIndex);
+			Tasks[TaskIndex]->EnqueueFlushMemory(Timestep, 0, NULL, UnmapEvents + TaskIndex);
 		}
 		for (size_t EventIndex = 0; EventIndex < Tasks.size(); EventIndex++) {
 			clWaitForEvents(1, UnmapEvents + EventIndex);

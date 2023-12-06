@@ -12,6 +12,6 @@ namespace CLUtils {
 	
 	cl_uint SetKernelArguments(cl_kernel Kernel, cl_uint Count, const ArgumentDefintion* Definitions);
 	const char* GetErrorName(cl_int Err);
-	void PrintAndHaltIfError(cl_int Err);
+	void PrintAndHaltIfError(const char* Activity, cl_int Err);
 	cl_program CompileProgramFromFiles(cl_context Context, cl_device_id Device, unsigned int SourceCount, const char** SourcePaths, const char* BuildFlags);
 }

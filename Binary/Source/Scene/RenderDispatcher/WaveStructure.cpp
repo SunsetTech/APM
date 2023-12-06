@@ -10,21 +10,18 @@
 
 namespace APM::Scene::RenderDispatcher {
 	void WaveStructure::Task::SetupSpacetimeBuffer() {
-		this->SpacetimeBuffer = new double[this->Structure->BufferLength*2];
+		this->SpacetimeBuffer = new Wave_ValueType[this->Structure->BufferLength*2];
 		std::memcpy(
 			this->SpacetimeBuffer,
 			this->Structure->SpaceBuffer,
-			this->Structure->BufferLength * sizeof(double)
+			this->Structure->BufferLength * sizeof(Wave_ValueType)
 		);
 		cl_int Err;
-		this->SpacetimeBufferCL = clCreateBuffer(this->Context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, sizeof(double) * this->Structure->BufferLength * 2, this->SpacetimeBuffer, &Err);
-		CLUtils::PrintAndHaltIfError(Err);
+		this->SpacetimeBufferCL = clCreateBuffer(this->Context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, sizeof(Wave_ValueType) * this->Structure->BufferLength * 2, this->SpacetimeBuffer, &Err);
+		CLUtils::PrintAndHaltIfError("Creating SpacetimeBufferCL in WaveStructure task", Err);
 	}
 	
-	WaveStructure::Task::Task(cl_context Context, cl_command_queue Queue, cl_kernel Kernel, Object::WaveStructure* Structure) {
-		this->Context = Context; clRetainContext(Context);
-		this->Queue = Queue; clRetainCommandQueue(Queue);
-		this->Kernel = Kernel; clRetainKernel(Kernel);
+	WaveStructure::Task::Task(cl_context Context, cl_command_queue Queue, cl_kernel Kernel, Object::WaveStructure* Structure): Base::Task(Context, Queue, Kernel) {
 		this->Structure = Structure;
 		this->SpacetimeBounds = new cl_uint[Structure->Dimensions+1];
 		this->SpacetimeBounds[0] = 2;
@@ -33,9 +30,9 @@ namespace APM::Scene::RenderDispatcher {
 		}
 		cl_int Err;
 		this->ParameterBufferCL = clCreateBuffer(Context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(Wave_CellParameters) * Structure->BufferLength, Structure->CellParameterBuffer, &Err);
-		CLUtils::PrintAndHaltIfError(Err);
+		CLUtils::PrintAndHaltIfError("Creating ParameterBufferCL in WaveStructure task", Err);
 		this->SpacetimeBoundsCL = clCreateBuffer(Context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(cl_uint) * (Structure->Dimensions+1), this->SpacetimeBounds, &Err);
-		CLUtils::PrintAndHaltIfError(Err);
+		CLUtils::PrintAndHaltIfError("Creating SpacetimeBoundsCL in WaveStructure task", Err);
 		this->SetupSpacetimeBuffer();
 	}
 	
@@ -49,7 +46,7 @@ namespace APM::Scene::RenderDispatcher {
 		};
 		
 		cl_int Err = CLUtils::SetKernelArguments(this->Kernel, std::size(Arguments), Arguments);
-		CLUtils::PrintAndHaltIfError(Err);
+		CLUtils::PrintAndHaltIfError("Setting kernel arguments in WaveStructure task", Err);
 		
 		size_t GlobalSize[] = {0,0,0};
 		for (unsigned int Dimension = 0; Dimension < this->Structure->Dimensions; Dimension++) {
@@ -57,31 +54,31 @@ namespace APM::Scene::RenderDispatcher {
 		}
 		//cl_event ExecutionEvent;
 		Err = clEnqueueNDRangeKernel(this->Queue, this->Kernel, this->Structure->Dimensions, NULL, GlobalSize, NULL, WaitEventCount, WaitEvents, CompletionEvent);
-		CLUtils::PrintAndHaltIfError(Err);
+		CLUtils::PrintAndHaltIfError("Enqueuing execution in WaveStructure task", Err);
 	}
 	
-	void WaveStructure::Task::EnqueueReadMemory(cl_uint WaitEventCount, const cl_event *WaitEvents, cl_event *CompletionEvent) {
+	void WaveStructure::Task::EnqueueReadyMemory(cl_uint Timestep, cl_uint WaitEventCount, const cl_event *WaitEvents, cl_event *CompletionEvent) {
 		cl_int Err = clEnqueueReadBuffer(
 			this->Queue,
 			this->SpacetimeBufferCL,
 			false,
-			0, sizeof(double) * 2 * this->Structure->BufferLength,
+			Timestep * this->Structure->BufferLength, sizeof(Wave_ValueType) * this->Structure->BufferLength,
 			this->SpacetimeBuffer,
 			WaitEventCount, WaitEvents, CompletionEvent
 		);
-		CLUtils::PrintAndHaltIfError(Err);
+		CLUtils::PrintAndHaltIfError("Enqueuing read buffer in WaveStructure task", Err);
 	}
 	
-	void WaveStructure::Task::EnqueueWriteMemory(cl_uint WaitEventCount, const cl_event *WaitEvents, cl_event *CompletionEvent) {
+	void WaveStructure::Task::EnqueueFlushMemory(cl_uint Timestep, cl_uint WaitEventCount, const cl_event *WaitEvents, cl_event *CompletionEvent) {
 		cl_int Err = clEnqueueWriteBuffer(
 			this->Queue,
 			this->SpacetimeBufferCL,
 			false,
-			0, sizeof(double) * 2 * this->Structure->BufferLength,
+			Timestep * this->Structure->BufferLength, sizeof(Wave_ValueType) * this->Structure->BufferLength,
 			this->SpacetimeBuffer,
 			WaitEventCount, WaitEvents, CompletionEvent
 		);
-		CLUtils::PrintAndHaltIfError(Err);
+		CLUtils::PrintAndHaltIfError("Enqueuing write buffer in WaveStructure task", Err);
 	}
 	
 	float WaveStructure::Task::GetSourceValue(size_t ID, size_t Timestep) { //TODO
@@ -114,7 +111,7 @@ namespace APM::Scene::RenderDispatcher {
 		clReleaseMemObject(this->SpacetimeBufferCL);
 		delete[] this->SpacetimeBounds;
 		clReleaseMemObject(this->SpacetimeBoundsCL);
-		clReleaseMemObject(this->ParameterBufferCL);
+		clReleaseMemObject(this->ParameterBufferCL); //We don't delete[] the corresponding buffer because we don't own it
 	}
 	
 	WaveStructure::WaveStructure(cl_context Context, cl_device_id Device, cl_command_queue Queue): Base(Context, Device, Queue) {
@@ -132,7 +129,7 @@ namespace APM::Scene::RenderDispatcher {
 		
 		cl_int Err;
 		this->Kernel = clCreateKernel(Program, "Wave_1Dto3D_Large", &Err);
-		CLUtils::PrintAndHaltIfError(Err);
+		CLUtils::PrintAndHaltIfError("Creating kernel for Wave_1Dto3D_Large",Err);
 	}
 
 	bool WaveStructure::Handles(Object::Base* Object) {

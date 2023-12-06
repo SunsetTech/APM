@@ -3,6 +3,7 @@
 
 #include <CL/cl.h>
 #include "tinywav.h"
+#include "Utils.hpp"
 #include "Engine.hpp"
 #include "ExecutionBin.hpp"
 #include "Scene/Description.hpp"
@@ -59,7 +60,7 @@ int main() {
 	//TODO benchmark selected devices for initial performance ordering
 	printf("Setting up scene...\n");
 	APM::Scene::Description TestScene;
-	APM::Scene::Object::SpringBundle TestBundle(1,16);
+	APM::Scene::Object::SpringBundle TestBundle(1,5);
 	for (unsigned int FiberIndex = 0; FiberIndex < TestBundle.FiberCount; FiberIndex++) {
 		for (unsigned int NodeIndex = 0; NodeIndex < TestBundle.FiberLength; NodeIndex++) {
 			size_t BufferIndex = TestBundle.MapIndex(FiberIndex, NodeIndex);
@@ -143,7 +144,7 @@ int main() {
 	unsigned int LastPercent = 0;
 	std::atomic_size_t ProgressTracker = LastProgress;
 	cl_uint SampleRate = 44100;
-	float LengthInSecs = 3;
+	float LengthInSecs = 2;
 	cl_uint LengthInSamples = (float)SampleRate*LengthInSecs;
 	float* OutputBufferL = new float[LengthInSamples];
 	float* OutputBufferR = new float[LengthInSamples];
@@ -176,44 +177,21 @@ int main() {
 		printf("Debug: %f\n", DebugBuffer[LastProgress]);
 		printf("L: %f, R: %f\n", ValueL, ValueR);
 		unsigned int Percent = floorf(((float)LastProgress/(LengthInSamples-1.0f))*100.0f);
-		if (Percent > LastPercent) {
-			LastPercent = Percent;
-		}
+		LastPercent = Percent;
 		printf("%i%% complete..\n", LastPercent);
 	}
-	printf("Writing Output.wav\n");
-	TinyWav StereoWavOutputHandle, DebugWavOutputHandle;
-	tinywav_open_write(
-		&StereoWavOutputHandle,
-		2,
-		SampleRate,
-		TW_FLOAT32,
-		TW_SPLIT,
-		"Output.wav"
-	);
-	tinywav_open_write(
-		&DebugWavOutputHandle,
-		1,
-		SampleRate,
-		TW_FLOAT32,
-		TW_SPLIT,
-		"Output_Debug.wav"
-	);
+	printf("Writing output .wav files\n");
 	float* StereoBuffer[] = {OutputBufferL, OutputBufferR};
-	tinywav_write_f(&StereoWavOutputHandle, StereoBuffer, LengthInSamples);
-	tinywav_close_write(&StereoWavOutputHandle);
+	Utils::WriteWAV_File("Output.wav", SampleRate, 2, LengthInSamples, StereoBuffer);
 	float* MonoBuffer[] = {DebugBuffer};
-	tinywav_write_f(&DebugWavOutputHandle, MonoBuffer, LengthInSamples);
-	tinywav_close_write(&DebugWavOutputHandle);
+	Utils::WriteWAV_File("Output_Debug.wav", SampleRate, 1, LengthInSamples, MonoBuffer);
 	delete[] OutputBufferL;
 	delete[] OutputBufferR;
 	delete[] DebugBuffer;
 	printf("Shutting down job processing thread...\n");
 	TestEngine.StopJobsThread();
 	printf("Deleting execution bins...\n");
-	for (unsigned int BinIndex = 0; BinIndex < ExecutionBins.size(); BinIndex++) {
-		delete ExecutionBins[BinIndex];
-	}
+	ExecutionBins.clear();
 	printf("Bye.\n");
 	return 0;
 }

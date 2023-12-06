@@ -1,31 +1,34 @@
 #include "Wave.cl.h"
 #include "Math.cl.h"
 
-double Wave_ComputeNextValue(
-	int Dimensions,
+void Wave_Update(
+	int SpatialDimensions,
 	const Wave_CellParameters* GridParameters,
-	const double* Cells,
-	int* Position, const unsigned int* Bounds,
-	double SpacetimeDelta
+	Wave_ValueType* Spacetime,
+	int* Position, const unsigned int* SpacetimeBounds,
+	Wave_ValueType SpacetimeDelta
 ) {
-	const int SpacetimeDimensions = Dimensions + 1;
-	Wave_CellParameters Parameters = GridParameters[MapIndex(Dimensions, Position+1, Bounds+1)];
+	const int SpacetimeDimensions = SpatialDimensions + 1;
+	Wave_CellParameters Parameters = GridParameters[MapIndex(SpatialDimensions, Position+1, SpacetimeBounds+1)];
 	
-	double DoubleCurrent = 2.0 * Cells[MapIndex(SpacetimeDimensions,Position, Bounds)];
+	Wave_ValueType DoubleCurrent = 2.0f * Spacetime[MapIndex(SpacetimeDimensions,Position, SpacetimeBounds)];
 	Position[0]--;
-	double Previous = Cells[MapIndex(SpacetimeDimensions,Position, Bounds)];
+	Wave_ValueType Previous = Spacetime[MapIndex(SpacetimeDimensions,Position, SpacetimeBounds)];
 	Position[0]++;
 	
-	double Next = (double)Dimensions * -DoubleCurrent;
+	Wave_ValueType Next = (Wave_ValueType)SpatialDimensions * -DoubleCurrent;
 	for (unsigned int Dimension = 1; Dimension < SpacetimeDimensions; Dimension++) {
 		Position[Dimension]--; 
-		Next += Cells[MapIndex(SpacetimeDimensions,Position,Bounds)];
+		Next += Spacetime[MapIndex(SpacetimeDimensions,Position,SpacetimeBounds)];
 		Position[Dimension]+=2;
-		Next += Cells[MapIndex(SpacetimeDimensions,Position,Bounds)];
+		Next += Spacetime[MapIndex(SpacetimeDimensions,Position,SpacetimeBounds)];
 		Position[Dimension]--;
 	}
 	
-	Next *= SpacetimeDelta * 44100.0; //TODO get WaveVelocity from parameters
+	Next *= SpacetimeDelta * Parameters.WaveVelocity; //TODO get WaveVelocity from parameters
 	
-	return (DoubleCurrent - Previous + Next) * Parameters.TransferEfficiency;
+	Next = Clamp(-1.0f, (DoubleCurrent - Previous + Next) * Parameters.TransferEfficiency, 1.0f);
+
+	Position[0]++;
+	Spacetime[MapIndex(SpatialDimensions+1, Position, SpacetimeBounds)] = Next;
 }

@@ -18,7 +18,7 @@ namespace APM::Scene::Object {
 			Spring_SpringParameters* SpringParameterBuffer;
 			Spring_NodeParameters* NodeParameterBuffer;
 			Spring_NodeState* SpaceBuffer;
-			std::vector<Plug> Inputs, Outputs;
+			std::vector<Plug> Inputs, Outputs; //TODO make these two way and make connections either one or two way
 			
 			SpringBundle(cl_uint FiberCount, cl_uint FiberLength);
 			size_t MapIndex(cl_uint Fiber, cl_uint Node);
