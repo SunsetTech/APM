@@ -8,9 +8,10 @@ typedef struct {
 } Wave_CellParameters;
 
 Wave_ValueType Wave_Update(
-	int Dimensions,
+	const int Dimensions,
 	const Wave_CellParameters* GridParameters,
 	Wave_ValueType* Spacetime,
-	int* Position, const unsigned int* Bounds,
-	Wave_ValueType SpacetimeDelta
+	int* Position, 
+	const unsigned int* Bounds,
+	const Wave_ValueType SpacetimeDelta
 ); 

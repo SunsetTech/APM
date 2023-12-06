@@ -144,7 +144,7 @@ int main() {
 	unsigned int LastPercent = 0;
 	std::atomic_size_t ProgressTracker = LastProgress;
 	cl_uint SampleRate = 44100;
-	float LengthInSecs = 1;
+	float LengthInSecs = 3;
 	cl_uint LengthInSamples = (float)SampleRate*LengthInSecs;
 	float* OutputBufferL = new float[LengthInSamples];
 	float* OutputBufferR = new float[LengthInSamples];

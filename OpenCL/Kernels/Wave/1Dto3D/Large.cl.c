@@ -19,7 +19,7 @@ __kernel void Wave_1Dto3D_Large(
 		get_global_id(2),
 	};
 	
-	Wave_ValueType Next = Wave_Update(
+	const Wave_ValueType Next = Wave_Update(
 		SpatialDimensions,
 		SpacetimeParameters, Spacetime,
 		CellPosition, SpacetimeBounds,

@@ -61,24 +61,32 @@ namespace APM::Scene::RenderDispatcher {
 	}
 	
 	void WaveStructure::Task::EnqueueReadyMemory(cl_uint Timestep, cl_uint WaitEventCount, const cl_event *WaitEvents, cl_event *CompletionEvent) {
-		cl_int Err = clEnqueueReadBuffer(
+		const size_t BufferOffset = Timestep * this->Structure->BufferLength;
+		const size_t BufferSizeBytes = this->Structure->BufferLength * sizeof(Wave_ValueType);
+		const size_t BufferOffsetBytes = BufferOffset * sizeof(Wave_ValueType);
+		const cl_int Err = clEnqueueReadBuffer(
 			this->Queue,
 			this->SpacetimeBufferCL,
-			false,
-			0, sizeof(Wave_ValueType) * 2 * this->Structure->BufferLength,
-			this->SpacetimeBuffer,
+			CL_TRUE,
+			BufferOffsetBytes,
+			BufferSizeBytes,
+			&this->SpacetimeBuffer[BufferOffset],
 			WaitEventCount, WaitEvents, CompletionEvent
 		);
 		CLUtils::PrintAndHaltIfError("Enqueuing read buffer in WaveStructure task", Err);
 	}
 	
 	void WaveStructure::Task::EnqueueFlushMemory(cl_uint Timestep, cl_uint WaitEventCount, const cl_event *WaitEvents, cl_event *CompletionEvent) {
-		cl_int Err = clEnqueueWriteBuffer(
+		const size_t BufferOffset = Timestep * this->Structure->BufferLength;
+		const size_t BufferSizeBytes = this->Structure->BufferLength * sizeof(Wave_ValueType);
+		const size_t BufferOffsetBytes = BufferOffset * sizeof(Wave_ValueType);
+		const cl_int Err = clEnqueueWriteBuffer(
 			this->Queue,
 			this->SpacetimeBufferCL,
 			false,
-			0, sizeof(Wave_ValueType) * 2 * this->Structure->BufferLength,
-			this->SpacetimeBuffer,
+			BufferOffsetBytes, 
+			BufferSizeBytes,
+			&this->SpacetimeBuffer[BufferOffset],
 			WaitEventCount, WaitEvents, CompletionEvent
 		);
 		CLUtils::PrintAndHaltIfError("Enqueuing write buffer in WaveStructure task", Err);
