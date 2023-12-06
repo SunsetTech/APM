@@ -1,7 +1,7 @@
 #include "Wave.cl.h"
 #include "Math.cl.h"
 
-void Wave_Update(
+Wave_ValueType Wave_Update(
 	int SpatialDimensions,
 	const Wave_CellParameters* GridParameters,
 	Wave_ValueType* Spacetime,
@@ -29,6 +29,7 @@ void Wave_Update(
 	
 	Next = Clamp(-1.0f, (DoubleCurrent - Previous + Next) * Parameters.TransferEfficiency, 1.0f);
 
-	Position[0]++;
-	Spacetime[MapIndex(SpatialDimensions+1, Position, SpacetimeBounds)] = Next;
+	//Position[0]++;
+	//Spacetime[MapIndex(SpatialDimensions+1, Position, SpacetimeBounds)] = Next;
+	return Next;
 }

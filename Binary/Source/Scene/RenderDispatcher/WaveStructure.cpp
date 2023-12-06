@@ -37,12 +37,15 @@ namespace APM::Scene::RenderDispatcher {
 	}
 	
 	void WaveStructure::Task::EnqueueExecution(float TimeDelta, cl_uint Timestep, cl_uint WaitEventCount, const cl_event *WaitEvents, cl_event *CompletionEvent) {
+		const Wave_ValueType SpaceDelta = 1.0f/10000.0f;
 		const CLUtils::ArgumentDefintion Arguments[] = {
-			{sizeof(cl_mem), &this->ParameterBufferCL},
-			{sizeof(cl_mem), &this->SpacetimeBufferCL},
-			{sizeof(cl_uint), &Timestep},
 			{sizeof(cl_uint), &this->Structure->Dimensions},
 			{sizeof(cl_mem), &this->SpacetimeBoundsCL},
+			{sizeof(cl_mem), &this->ParameterBufferCL},
+			{sizeof(cl_float), &SpaceDelta},
+			{sizeof(cl_float), &TimeDelta},
+			{sizeof(cl_uint), &Timestep},
+			{sizeof(cl_mem), &this->SpacetimeBufferCL},
 		};
 		
 		cl_int Err = CLUtils::SetKernelArguments(this->Kernel, std::size(Arguments), Arguments);
@@ -62,7 +65,7 @@ namespace APM::Scene::RenderDispatcher {
 			this->Queue,
 			this->SpacetimeBufferCL,
 			false,
-			Timestep * this->Structure->BufferLength, sizeof(Wave_ValueType) * this->Structure->BufferLength,
+			0, sizeof(Wave_ValueType) * 2 * this->Structure->BufferLength,
 			this->SpacetimeBuffer,
 			WaitEventCount, WaitEvents, CompletionEvent
 		);
@@ -74,7 +77,7 @@ namespace APM::Scene::RenderDispatcher {
 			this->Queue,
 			this->SpacetimeBufferCL,
 			false,
-			Timestep * this->Structure->BufferLength, sizeof(Wave_ValueType) * this->Structure->BufferLength,
+			0, sizeof(Wave_ValueType) * 2 * this->Structure->BufferLength,
 			this->SpacetimeBuffer,
 			WaitEventCount, WaitEvents, CompletionEvent
 		);
@@ -83,15 +86,17 @@ namespace APM::Scene::RenderDispatcher {
 	
 	float WaveStructure::Task::GetSourceValue(size_t ID, size_t Timestep) { //TODO
 		Object::WaveStructure::Plug CurrentPlug = this->Structure->Outputs[ID];
+		
 		cl_uint* Cursor = new cl_uint[this->Structure->Dimensions+1];
 		Cursor[0] = Timestep;
 		for (unsigned int Dimension = 0; Dimension < this->Structure->Dimensions; Dimension++) {
-			cl_uint Value = CurrentPlug.Position[Dimension];
-			Cursor[Dimension+1] = Value;
+			Cursor[Dimension+1] = CurrentPlug.Position[Dimension];
 		}
 		
-		float Value = this->SpacetimeBuffer[Math::MapIndex<3>(Cursor, this->SpacetimeBounds)];
+		float Value = this->SpacetimeBuffer[Math::MapIndex(this->Structure->Dimensions+1, Cursor, this->SpacetimeBounds)];
+		
 		delete[] Cursor;
+		
 		return Value;
 	}
 	

@@ -7,7 +7,7 @@ typedef struct {
 	Wave_ValueType TransferEfficiency;
 } Wave_CellParameters;
 
-void Wave_Update(
+Wave_ValueType Wave_Update(
 	int Dimensions,
 	const Wave_CellParameters* GridParameters,
 	Wave_ValueType* Spacetime,
