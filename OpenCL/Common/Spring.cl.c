@@ -38,11 +38,9 @@ Spring_NodeState Spring_NextState( //make not a ring
 		Spring_PrecisionType TotalAcceleration = (LeftAcceleration + RightAcceleration);
 		Spring_PrecisionType NewVelocity = (CurrentNodeParameters.Damping * CurrentNode.Velocity) + TotalAcceleration;
 		Spring_PrecisionType NewPosition = CurrentPosition + NewVelocity * TimeDelta;
-		//printf("%f->%f\n", CurrentPosition,NewPosition);	
 		return (Spring_NodeState){NewPosition, NewVelocity};
 	} else {
 		Spring_PrecisionType CurrentPosition = CurrentNode.Position;
-		//printf("fixed %f->%f\n",CurrentPosition, CurrentPosition);
 		return (Spring_NodeState){CurrentPosition, 0.0f};
 	}
 }
