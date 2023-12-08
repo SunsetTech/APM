@@ -1,7 +1,7 @@
 PROJECT_NAME := APM
 
 COMPILER := g++
-COMPILEFLAGS := -MMD -std=c++20 -c -I../tinywavBuild/tinywav/ -I../ImGuiBuild/imgui/ -I../OpenCL/Common/
+COMPILEFLAGS := -DCL_TARGET_OPENCL_VERSION=200 -MMD -std=c++20 -c -I../tinywavBuild/tinywav/ -I../ImGuiBuild/imgui/ -I../OpenCL/Common/
 LINKFLAGS := -lm -lOpenCL -L../tinywavBuild/ -ltinywav -L../ImGuiBuild/ -limgui -lglfw -lGL
 BUILD := Build
 SOURCE := Source

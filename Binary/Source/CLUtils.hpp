@@ -1,4 +1,3 @@
-#define CL_TARGET_OPENCL_VERSION 200
 #include <cstddef>
 #include <CL/cl.h>
 

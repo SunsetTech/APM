@@ -9,7 +9,7 @@ namespace APM::Scene::RenderDispatcher {
 			class Task: public Base::Task {
 				private:
 					Object::WaveStructure* Structure;
-					Wave_ValueType* SpacetimeBuffer;
+					Wave_PrecisionType* SpacetimeBuffer;
 					cl_uint* SpacetimeBounds;
 					cl_mem ParameterBufferCL, SpacetimeBufferCL, SpacetimeBoundsCL;
 					void SetupSpacetimeBuffer();

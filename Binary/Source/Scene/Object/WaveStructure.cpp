@@ -11,7 +11,7 @@ namespace APM::Scene::Object {
 			this->BufferLength *= SpatialBounds[Dimension];
 		}
 		this->CellParameterBuffer = new Wave_CellParameters[this->BufferLength];
-		this->SpaceBuffer = new Wave_ValueType[this->BufferLength];
+		this->SpaceBuffer = new Wave_PrecisionType[this->BufferLength];
 	}
 	
 	size_t WaveStructure::MapIndex(cl_uint *Position) {

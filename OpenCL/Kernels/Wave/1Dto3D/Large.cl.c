@@ -5,12 +5,12 @@ __kernel void Wave_1Dto3D_Large(
 	const unsigned int SpatialDimensions,
 	const __global unsigned int* SpacetimeBounds,
 	const __global Wave_CellParameters* SpacetimeParameters, 
-	const Wave_ValueType SpaceDelta,
-	const Wave_ValueType TimeDelta,
+	const Wave_PrecisionType SpaceDelta,
+	const Wave_PrecisionType TimeDelta,
 	const unsigned int Timestep,
-	__global Wave_ValueType* Spacetime 
+	__global Wave_PrecisionType* Spacetime 
 ) {
-	const Wave_ValueType SpacetimeDelta = pow(TimeDelta/SpaceDelta,2.0f); //TODO make argument
+	const Wave_PrecisionType SpacetimeDelta = pow(TimeDelta/SpaceDelta,2.0f); //TODO make argument
 	
 	int CellPosition[4] = {
 		(int)Timestep-1, 
@@ -19,7 +19,7 @@ __kernel void Wave_1Dto3D_Large(
 		get_global_id(2),
 	};
 	
-	const Wave_ValueType Next = Wave_Update(
+	const Wave_PrecisionType Next = Wave_Update(
 		SpatialDimensions,
 		SpacetimeParameters, Spacetime,
 		CellPosition, SpacetimeBounds,
