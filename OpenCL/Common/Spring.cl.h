@@ -1,26 +1,30 @@
 #pragma once
 
+#include "Typedefs.cl.h"
+
+typedef cl_float Spring_PrecisionType;
+
 typedef struct {
-	float RestLength;
-	float Stiffness;
+	Spring_PrecisionType RestLength;
+	Spring_PrecisionType Stiffness;
 } Spring_SpringParameters;
 
 typedef struct {
-	float Mass, Damping;
-	bool Fixed;
+	Spring_PrecisionType Mass, Damping;
+	cl_bool Fixed;
 } Spring_NodeParameters;
 
 typedef struct {
-	float Position;
-	float Velocity;
+	Spring_PrecisionType Position;
+	Spring_PrecisionType Velocity;
 } Spring_NodeState;
 
 Spring_NodeState Spring_NextState(
 	const Spring_SpringParameters* SpringParameters, //0
 	const Spring_NodeParameters* NodeParameters, 
 	const Spring_NodeState* Spacetime,
-	const unsigned int* SpacetimeBounds,
-	unsigned int MassID,
-	unsigned int Timestep, //4
-	float TimeDelta //5
+	const cl_uint* SpacetimeBounds,
+	cl_uint MassID,
+	cl_uint Timestep, //4
+	Spring_PrecisionType TimeDelta //5
 );

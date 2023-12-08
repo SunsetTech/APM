@@ -12,8 +12,8 @@ unsigned int MapIndex(unsigned int Dimensions, const int* Position, const unsign
 	unsigned int Result = 0;
 	unsigned int Multiplier = 1;
 	for (int Dimension = Dimensions-1; Dimension >= 0; Dimension--) {
-		Result = mad24((unsigned int)Wrap(Position[Dimension], Size[Dimension]), Multiplier, Result);
-		Multiplier = mul24(Size[Dimension], Multiplier);
+		Result += Wrap(Position[Dimension], Size[Dimension]) * Multiplier;
+		Multiplier *= Size[Dimension];
 	}
 	
 	return Result;

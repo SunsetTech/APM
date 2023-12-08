@@ -1,6 +1,8 @@
 #pragma once
 
-int Wrap(int a, int n); 
-float Clamp(float Min, float Val, float Max); 
+#include "Typedefs.cl.h"
 
-unsigned int MapIndex(unsigned int Dimensions, const int* Position, const unsigned int* Size);
+cl_int Wrap(cl_int a, cl_int n); 
+cl_float Clamp(cl_float Min, cl_float Val, cl_float Max); 
+
+cl_uint MapIndex(cl_uint Dimensions, const cl_int* Position, const cl_uint* Size);

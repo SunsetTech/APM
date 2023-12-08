@@ -10,7 +10,7 @@ typedef struct {
 } Wave_CellParameters;
 
 Wave_PrecisionType Wave_Update(
-	const cl_int Dimensions, //TODO since these headers are compiled for both host and device we should probably provide portable typedefs for int/unsigned int/etc
+	const cl_int Dimensions,
 	const Wave_CellParameters* GridParameters,
 	Wave_PrecisionType* Spacetime,
 	cl_int* Position, 
