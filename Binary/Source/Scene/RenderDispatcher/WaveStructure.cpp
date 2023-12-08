@@ -11,6 +11,11 @@
 namespace APM::Scene::RenderDispatcher {
 	void WaveStructure::Task::SetupSpacetimeBuffer() {
 		this->SpacetimeBuffer = new Wave_PrecisionType[this->Structure->BufferLength*2];
+		std::memset(
+			this->SpacetimeBuffer,
+			0,
+			this->Structure->BufferLength * 2 * sizeof(Wave_PrecisionType)
+		);
 		std::memcpy(
 			this->SpacetimeBuffer,
 			this->Structure->SpaceBuffer,
