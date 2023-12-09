@@ -149,6 +149,7 @@ int main() {
 	float* OutputBufferL = new float[LengthInSamples];
 	float* OutputBufferR = new float[LengthInSamples];
 	float* DebugBuffer = new float[LengthInSamples];
+	long long StartTime = Utils::Time::Milliseconds();
 	TestEngine.EnqueueJob(
 		TestScene, 1.0f/(float)SampleRate, LengthInSamples, 
 		{
@@ -180,6 +181,7 @@ int main() {
 		LastPercent = Percent;
 		printf("%i%% complete..\n", LastPercent);
 	}
+	printf("%lld s\n", (Utils::Time::Milliseconds() - StartTime)/1000LL);
 	printf("Writing output .wav files\n");
 	float* StereoBuffer[] = {OutputBufferL, OutputBufferR};
 	Utils::WriteWAV_File("Output.wav", SampleRate, 2, LengthInSamples, StereoBuffer);
