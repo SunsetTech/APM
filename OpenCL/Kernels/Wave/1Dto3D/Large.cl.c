@@ -1,7 +1,7 @@
 #include "Math.cl.h"
 #include "Wave.cl.h"
 
-__kernel void Wave_1Dto3D_Large(
+__kernel __attribute__((vec_type_hint(Wave_PrecisionType))) void Wave_1Dto3D_Large(
 	const unsigned int SpatialDimensions,
 	const __global unsigned int* SpacetimeBounds,
 	const __global Wave_CellParameters* SpacetimeParameters, 
