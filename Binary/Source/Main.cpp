@@ -181,7 +181,7 @@ int main() {
 		LastPercent = Percent;
 		printf("%i%% complete..\n", LastPercent);
 	}
-	printf("%lld s\n", (Utils::Time::Milliseconds() - StartTime)/1000LL);
+	printf("Took %llds\n", (Utils::Time::Milliseconds() - StartTime)/1000LL);
 	printf("Writing output .wav files\n");
 	float* StereoBuffer[] = {OutputBufferL, OutputBufferR};
 	Utils::WriteWAV_File("Output.wav", SampleRate, 2, LengthInSamples, StereoBuffer);
