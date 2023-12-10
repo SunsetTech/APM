@@ -13,28 +13,26 @@
 #include "Scene/RenderDispatcher/WaveStructure.hpp"
 
 APM::Scene::Object::WaveStructure* CreatePlate(cl_uint Width, cl_uint Height) {
-	cl_uint StructureBounds[] = {Width, Height};
+	cl_uint* StructureBounds = new cl_uint[2];
+	StructureBounds[0] = Width;
+	StructureBounds[1] = Height;
 	APM::Scene::Object::WaveStructure* Structure = new APM::Scene::Object::WaveStructure(2, StructureBounds);
 	cl_uint Cursor[2];
 	for (cl_uint X = 0; X < StructureBounds[0]; X++) {
 		for (cl_uint Y = 0; Y < StructureBounds[1]; Y++) {
-			//for (cl_uint Z = 0; Z < StructureBBounds[2]; Z++) {
-				Cursor[0] = X;
-				Cursor[1] = Y;
-				//Cursor[2] = Z;
-				size_t Index = Structure->MapIndex(Cursor);
-				Structure->SpaceBuffer[Index] = 0.0f;
-				Structure->WaveVelocity[Index] = powf(1.0f, 2.0f);
-				if (
-					   X == 0 || X == StructureBounds[0]-1
-					|| Y == 0 || Y == StructureBounds[1]-1
-					//|| Z == 0 || Z == StructureBBounds[2]-1
-				) {
-					Structure->TransferEfficiency[Index] = 0.0;
-				} else {
-					Structure->TransferEfficiency[Index] = 0.9999f;
-				}
-			//}
+			Cursor[0] = X;
+			Cursor[1] = Y;
+			size_t Index = Structure->MapIndex(Cursor);
+			Structure->SpaceBuffer[Index] = 0.0f;
+			Structure->WaveVelocity[Index] = powf(1.0f, 2.0f);
+			if (
+				   X == 0 || X == StructureBounds[0]-1
+				|| Y == 0 || Y == StructureBounds[1]-1
+			) {
+				Structure->TransferEfficiency[Index] = 0.0;
+			} else {
+				Structure->TransferEfficiency[Index] = 0.9999f;
+			}
 		}
 	}
 	return Structure;
@@ -138,7 +136,7 @@ int main() {
 	TestBundle.Outputs.push_back({0,TestBundle.FiberLength-2,(float)TestBundle.FiberLength-2.0f});
 	TestScene.Objects.push_back(&TestBundle);*/
 	
-	APM::Scene::Object::WaveStructure* StructureA = CreatePlate(32, 32);
+	APM::Scene::Object::WaveStructure* StructureA = CreatePlate(256, 256);
 	cl_uint StructureAOutputPos[] = {63, 63};
 	StructureA->SpaceBuffer[StructureA->MapIndex(StructureAOutputPos)] = 1.0f;
 
@@ -149,9 +147,9 @@ int main() {
 	);
 	TestScene.Objects.push_back(StructureA);
 	
-	APM::Scene::Object::WaveStructure* StructureB = CreatePlate(32, 32);
+	APM::Scene::Object::WaveStructure* StructureB = CreatePlate(128, 128);
 	
-	cl_uint AttachPos[] = {1,1};
+	cl_uint AttachPos[] = {63,63};
 	StructureB->Inputs.push_back(
 		(APM::Scene::Object::WaveStructure::Plug) {
 			.Position = AttachPos,
