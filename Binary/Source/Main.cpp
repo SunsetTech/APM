@@ -91,16 +91,17 @@ int main() {
 				Cursor[0] = X;
 				Cursor[1] = Y;
 				//Cursor[2] = Z;
-				TestStructure.SpaceBuffer[TestStructure.MapIndex(Cursor)] = 0.0f;
-				TestStructure.CellParameterBuffer[TestStructure.MapIndex(Cursor)].WaveVelocity = powf(1.0f, 2.0f);
+				size_t Index = TestStructure.MapIndex(Cursor);
+				TestStructure.SpaceBuffer[Index] = 0.0f;
+				TestStructure.WaveVelocity[Index] = powf(1.0f, 2.0f);
 				if (
 					   X == 0 || X == TestStructureBounds[0]-1
 					|| Y == 0 || Y == TestStructureBounds[1]-1
 					//|| Z == 0 || Z == TestStructureBounds[2]-1
 				) {
-					TestStructure.CellParameterBuffer[TestStructure.MapIndex(Cursor)].TransferEfficiency = 0;
+					TestStructure.TransferEfficiency[Index] = 0.0;
 				} else {
-					TestStructure.CellParameterBuffer[TestStructure.MapIndex(Cursor)].TransferEfficiency = 0.9999f;
+					TestStructure.TransferEfficiency[Index] = 0.9999f;
 				}
 			//}
 		}

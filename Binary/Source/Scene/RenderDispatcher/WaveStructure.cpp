@@ -34,7 +34,9 @@ namespace APM::Scene::RenderDispatcher {
 			this->SpacetimeBounds[Dimension+1] = Structure->SpatialBounds[Dimension];
 		}
 		cl_int Err;
-		this->ParameterBufferCL = clCreateBuffer(Context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(Wave_CellParameters) * Structure->BufferLength, Structure->CellParameterBuffer, &Err);
+		//this->ParameterBufferCL = clCreateBuffer(Context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(Wave_CellParameters) * Structure->BufferLength, Structure->CellParameterBuffer, &Err);
+		this->WaveVelocityCL = clCreateBuffer(Context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(Wave_PrecisionType) * Structure->BufferLength, Structure->WaveVelocity, &Err);
+		this->TransferEfficiencyCL = clCreateBuffer(Context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(Wave_PrecisionType) * Structure->BufferLength, Structure->TransferEfficiency, &Err);
 		CLUtils::PrintAndHaltIfError("Creating ParameterBufferCL in WaveStructure task", Err);
 		this->SpacetimeBoundsCL = clCreateBuffer(Context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(cl_uint) * (Structure->Dimensions+1), this->SpacetimeBounds, &Err);
 		CLUtils::PrintAndHaltIfError("Creating SpacetimeBoundsCL in WaveStructure task", Err);
@@ -46,7 +48,8 @@ namespace APM::Scene::RenderDispatcher {
 		const CLUtils::ArgumentDefintion Arguments[] = {
 			{sizeof(cl_uint), &this->Structure->Dimensions},
 			{sizeof(cl_mem), &this->SpacetimeBoundsCL},
-			{sizeof(cl_mem), &this->ParameterBufferCL},
+			{sizeof(cl_mem), &this->WaveVelocityCL},
+			{sizeof(cl_mem), &this->TransferEfficiencyCL},
 			{sizeof(cl_float), &SpaceDelta},
 			{sizeof(cl_float), &TimeDelta},
 			{sizeof(cl_uint), &Timestep},
@@ -129,7 +132,8 @@ namespace APM::Scene::RenderDispatcher {
 		clReleaseMemObject(this->SpacetimeBufferCL);
 		delete[] this->SpacetimeBounds;
 		clReleaseMemObject(this->SpacetimeBoundsCL);
-		clReleaseMemObject(this->ParameterBufferCL); //We don't delete[] the corresponding buffer because we don't own it
+		clReleaseMemObject(this->WaveVelocityCL); //We don't delete[] the corresponding buffers because we don't own them
+		clReleaseMemObject(this->TransferEfficiencyCL);
 	}
 	
 	WaveStructure::WaveStructure(cl_context Context, cl_device_id Device, cl_command_queue Queue): Base(Context, Device, Queue) {

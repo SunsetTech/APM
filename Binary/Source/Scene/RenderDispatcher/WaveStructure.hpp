@@ -11,7 +11,7 @@ namespace APM::Scene::RenderDispatcher {
 					Object::WaveStructure* Structure;
 					Wave_PrecisionType* SpacetimeBuffer;
 					cl_uint* SpacetimeBounds;
-					cl_mem ParameterBufferCL, SpacetimeBufferCL, SpacetimeBoundsCL;
+					cl_mem WaveVelocityCL, TransferEfficiencyCL, SpacetimeBufferCL, SpacetimeBoundsCL;
 					void SetupSpacetimeBuffer();
 				public:
 					Task(cl_context Context, cl_command_queue Queue, cl_kernel Kernel, Object::WaveStructure* Bundle);

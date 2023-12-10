@@ -4,7 +4,8 @@
 __kernel __attribute__((vec_type_hint(Wave_PrecisionType))) void Wave_1Dto3D_Large(
 	const unsigned int SpatialDimensions,
 	const __global unsigned int* SpacetimeBounds,
-	const __global Wave_CellParameters* SpacetimeParameters, 
+	const __global Wave_PrecisionType* WaveVelocity,
+	const __global Wave_PrecisionType* TransferEfficiency,
 	const Wave_PrecisionType SpaceDelta,
 	const Wave_PrecisionType TimeDelta,
 	const unsigned int Timestep,
@@ -21,7 +22,9 @@ __kernel __attribute__((vec_type_hint(Wave_PrecisionType))) void Wave_1Dto3D_Lar
 	
 	const Wave_PrecisionType Next = Wave_Update(
 		SpatialDimensions,
-		SpacetimeParameters, Spacetime,
+		WaveVelocity,
+		TransferEfficiency,
+		Spacetime,
 		CellPosition, SpacetimeBounds,
 		SpacetimeDelta
 	);

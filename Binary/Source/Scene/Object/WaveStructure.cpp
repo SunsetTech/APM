@@ -10,7 +10,8 @@ namespace APM::Scene::Object {
 		for (cl_uint Dimension = 0; Dimension < Dimensions; Dimension++) {
 			this->BufferLength *= SpatialBounds[Dimension];
 		}
-		this->CellParameterBuffer = new Wave_CellParameters[this->BufferLength];
+		this->WaveVelocity = new Wave_PrecisionType[this->BufferLength];
+		this->TransferEfficiency = new Wave_PrecisionType[this->BufferLength];
 		this->SpaceBuffer = new Wave_PrecisionType[this->BufferLength];
 	}
 	
@@ -23,7 +24,8 @@ namespace APM::Scene::Object {
 	}
 	
 	WaveStructure::~WaveStructure() {
-		delete[] this->CellParameterBuffer;
+		delete[] this->WaveVelocity;
+		delete[] this->TransferEfficiency;
 		delete[] this->SpaceBuffer;
 	}
 }

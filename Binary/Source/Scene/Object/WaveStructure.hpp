@@ -17,7 +17,8 @@ namespace APM::Scene::Object {
 			cl_uint Dimensions;
 			cl_uint* SpatialBounds;
 			cl_uint BufferLength;
-			Wave_CellParameters* CellParameterBuffer;
+			Wave_PrecisionType* WaveVelocity;
+			Wave_PrecisionType* TransferEfficiency;
 			Wave_PrecisionType* SpaceBuffer;
 			
 			WaveStructure(cl_uint Dimensions, cl_uint* SpatialBounds);
