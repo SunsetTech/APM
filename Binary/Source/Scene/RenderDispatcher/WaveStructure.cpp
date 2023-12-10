@@ -11,6 +11,7 @@
 namespace APM::Scene::RenderDispatcher {
 	void WaveStructure::Task::SetupSpacetimeBuffer() {
 		this->SpacetimeBuffer = new Wave_PrecisionType[this->Structure->BufferLength*2];
+		printf("%lu bytes\n",this->Structure->BufferLength*2*sizeof(Wave_PrecisionType));
 		std::memset(
 			this->SpacetimeBuffer,
 			0,
@@ -42,6 +43,7 @@ namespace APM::Scene::RenderDispatcher {
 		this->SpacetimeBoundsCL = clCreateBuffer(Context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(cl_uint) * (Structure->Dimensions+1), this->SpacetimeBounds, &Err);
 		CLUtils::PrintAndHaltIfError("Creating SpacetimeBoundsCL in WaveStructure task", Err);
 		this->SetupSpacetimeBuffer();
+		printf("%lu total bytes\n", sizeof(Wave_PrecisionType)*Structure->BufferLength*4);
 	}
 	
 	void WaveStructure::Task::EnqueueExecution(float TimeDelta, cl_uint Timestep, cl_uint WaitEventCount, const cl_event *WaitEvents, cl_event *CompletionEvent) {
