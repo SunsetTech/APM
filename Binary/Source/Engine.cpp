@@ -40,11 +40,14 @@ namespace APM {
 		cl_event* UnmapEvents = new cl_event[Tasks.size()];
 		//Process simulations
 		for (size_t TaskIndex = 0; TaskIndex < Tasks.size(); TaskIndex++) {
-			Tasks[TaskIndex]->EnqueueExecution(TimeDelta, Timestep, 0, NULL, CompletionEvents + TaskIndex);
+			Tasks[TaskIndex]->EnqueueFlushMemory(Iteration%2, 0, NULL, UnmapEvents + TaskIndex);
+			Tasks[TaskIndex]->EnqueueExecution(TimeDelta, Timestep, 1, UnmapEvents + TaskIndex, CompletionEvents + TaskIndex);
 			Tasks[TaskIndex]->EnqueueReadyMemory(Timestep, 1, CompletionEvents + TaskIndex, MapEvents + TaskIndex);
 		}
+		
 		for (size_t EventIndex = 0; EventIndex < Tasks.size(); EventIndex++) {
 			clWaitForEvents(1, MapEvents + EventIndex);
+			clReleaseEvent(UnmapEvents[EventIndex]);
 			clReleaseEvent(MapEvents[EventIndex]);
 			clReleaseEvent(CompletionEvents[EventIndex]);
 		}
@@ -66,13 +69,13 @@ namespace APM {
 		}
 		
 		//Commit changes
-		for (size_t TaskIndex = 0; TaskIndex < Tasks.size(); TaskIndex++) {
+		/*for (size_t TaskIndex = 0; TaskIndex < Tasks.size(); TaskIndex++) {
 			Tasks[TaskIndex]->EnqueueFlushMemory(Timestep, 0, NULL, UnmapEvents + TaskIndex);
 		}
 		for (size_t EventIndex = 0; EventIndex < Tasks.size(); EventIndex++) {
 			clWaitForEvents(1, UnmapEvents + EventIndex);
 			clReleaseEvent(UnmapEvents[EventIndex]);
-		}
+		}*/
 		delete[] CompletionEvents;
 		delete[] MapEvents;
 		delete[] UnmapEvents;

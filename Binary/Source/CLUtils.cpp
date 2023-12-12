@@ -3,6 +3,12 @@
 #include <cstdio>
 
 namespace CLUtils {
+	void ReleaseEvents(size_t Count, cl_event *Events) {
+		for (size_t Index = 0; Index < Count; Index++) {
+			clReleaseEvent(Events[Index]);
+		}
+	}
+	
 	cl_uint SetKernelArguments(cl_kernel Kernel, cl_uint Count, const ArgumentDefintion* Definitions) {
 		cl_uint Err;
 		for (size_t Index = 0; Index < Count; Index++) {
