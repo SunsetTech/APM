@@ -8,7 +8,7 @@ namespace APM {
 		this->Device = Device; clRetainDevice(Device);
 		this->Context = clCreateContext(NULL, 1, &Device, NULL, NULL, &Err);
 		CLUtils::PrintAndHaltIfError("Creating context", Err);
-		this->Queue = clCreateCommandQueue(this->Context, Device, CL_QUEUE_PROFILING_ENABLE, &Err);
+		this->Queue = clCreateCommandQueue(this->Context, Device, CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE, &Err);
 		CLUtils::PrintAndHaltIfError("Creating command queue", Err);
 	}
 	

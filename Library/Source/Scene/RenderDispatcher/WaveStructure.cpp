@@ -79,7 +79,7 @@ namespace APM::Scene::RenderDispatcher {
 			const cl_int Err = clEnqueueReadBuffer(
 				this->Queue,
 				this->SpacetimeBufferCL,
-				CL_TRUE,
+				CL_FALSE,
 				BufferOffsetBytes,
 				sizeof(Wave_PrecisionType),
 				this->SpacetimeBuffer + BufferOffset,
@@ -108,7 +108,7 @@ namespace APM::Scene::RenderDispatcher {
 			const cl_int Err = clEnqueueWriteBuffer(
 				this->Queue,
 				this->SpacetimeBufferCL,
-				CL_TRUE,
+				CL_FALSE,
 				BufferOffsetBytes,
 				sizeof(Wave_PrecisionType),
 				this->SpacetimeBuffer + BufferOffset,
