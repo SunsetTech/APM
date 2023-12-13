@@ -11,7 +11,6 @@
 namespace APM::Scene::RenderDispatcher {
 	void WaveStructure::Task::SetupSpacetimeBuffer() {
 		this->SpacetimeBuffer = new Wave_PrecisionType[this->Structure->BufferLength*2];
-		printf("%lu bytes\n",this->Structure->BufferLength*2*sizeof(Wave_PrecisionType));
 		std::memset(
 			this->SpacetimeBuffer,
 			0,
@@ -24,7 +23,6 @@ namespace APM::Scene::RenderDispatcher {
 		);
 		cl_int Err;
 		this->SpacetimeBufferCL = clCreateBuffer(this->Context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, sizeof(Wave_PrecisionType) * this->Structure->BufferLength * 2, this->SpacetimeBuffer, &Err);
-		//delete[] this->SpacetimeBuffer;
 		CLUtils::PrintAndHaltIfError("Creating SpacetimeBufferCL in WaveStructure task", Err);
 	}
 	
@@ -35,18 +33,11 @@ namespace APM::Scene::RenderDispatcher {
 		for (cl_uint Dimension = 0; Dimension < Structure->Dimensions; Dimension++) {
 			this->SpacetimeBounds[Dimension+1] = Structure->SpatialBounds[Dimension];
 		}
-		cl_int Err;
-		//this->ParameterBufferCL = clCreateBuffer(Context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(Wave_CellParameters) * Structure->BufferLength, Structure->CellParameterBuffer, &Err);
-		this->WaveVelocityCL = clCreateBuffer(Context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(Wave_PrecisionType) * Structure->BufferLength, Structure->WaveVelocity, &Err);
-		this->TransferEfficiencyCL = clCreateBuffer(Context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(Wave_PrecisionType) * Structure->BufferLength, Structure->TransferEfficiency, &Err);
-		CLUtils::PrintAndHaltIfError("Creating ParameterBufferCL in WaveStructure task", Err);
-		this->SpacetimeBoundsCL = clCreateBuffer(Context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(cl_uint) * (Structure->Dimensions+1), this->SpacetimeBounds, &Err);
-		CLUtils::PrintAndHaltIfError("Creating SpacetimeBoundsCL in WaveStructure task", Err);
+		this->WaveVelocityCL = clCreateBuffer(Context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(Wave_PrecisionType) * Structure->BufferLength, Structure->WaveVelocity, nullptr);
+		this->TransferEfficiencyCL = clCreateBuffer(Context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(Wave_PrecisionType) * Structure->BufferLength, Structure->TransferEfficiency, nullptr);
+		this->SpacetimeBoundsCL = clCreateBuffer(Context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(cl_uint) * (Structure->Dimensions+1), this->SpacetimeBounds, nullptr);
 		this->SetupSpacetimeBuffer();
-		printf("%lu total bytes\n", sizeof(Wave_PrecisionType)*Structure->BufferLength*4);
-	}
-	
-	void WaveStructure::Task::EnqueueExecution(float TimeDelta, cl_uint Timestep, cl_uint WaitEventCount, const cl_event *WaitEvents, cl_event *CompletionEvent) {
+		
 		const Wave_PrecisionType SpaceDelta = 1.0f/10000.0f;
 		const CLUtils::ArgumentDefintion Arguments[] = {
 			{sizeof(cl_uint), &this->Structure->Dimensions},
@@ -54,14 +45,18 @@ namespace APM::Scene::RenderDispatcher {
 			{sizeof(cl_mem), &this->WaveVelocityCL},
 			{sizeof(cl_mem), &this->TransferEfficiencyCL},
 			{sizeof(cl_float), &SpaceDelta},
-			{sizeof(cl_float), &TimeDelta},
-			{sizeof(cl_uint), &Timestep},
+			{0, nullptr}, 
+			{0, nullptr},
 			{sizeof(cl_mem), &this->SpacetimeBufferCL},
 		};
-		
 		cl_int Err = CLUtils::SetKernelArguments(this->Kernel, std::size(Arguments), Arguments);
-		CLUtils::PrintAndHaltIfError("Setting kernel arguments in WaveStructure task", Err);
+		CLUtils::PrintAndHaltIfError("Setting initial kernel arguments in WaveStructure task", Err);
+	}
+	
+	void WaveStructure::Task::EnqueueExecution(float TimeDelta, cl_uint Timestep, cl_uint WaitEventCount, const cl_event *WaitEvents, cl_event *CompletionEvent) {
 		
+		cl_int Err = clSetKernelArg(this->Kernel, 5, sizeof(cl_float), &TimeDelta);
+		Err = clSetKernelArg(this->Kernel, 6, sizeof(cl_uint), &Timestep);
 		size_t GlobalSize[] = {0,0,0};
 		for (unsigned int Dimension = 0; Dimension < this->Structure->Dimensions; Dimension++) {
 			GlobalSize[Dimension] = this->Structure->SpatialBounds[Dimension];
@@ -72,18 +67,6 @@ namespace APM::Scene::RenderDispatcher {
 	}
 	
 	void WaveStructure::Task::EnqueueReadyMemory(cl_uint Timestep, cl_uint WaitEventCount, const cl_event *WaitEvents, cl_event *CompletionEvent) {
-		/*const size_t BufferOffset = Timestep * this->Structure->BufferLength;
-		const size_t BufferSizeBytes = this->Structure->BufferLength * sizeof(Wave_PrecisionType) ;
-		const size_t BufferOffsetBytes = BufferOffset * sizeof(Wave_PrecisionType);
-		this->SpacetimeBuffer = (Wave_PrecisionType*)clEnqueueMapBuffer(
-			this->Queue,
-			this->SpacetimeBufferCL,
-			CL_FALSE,
-			CL_MAP_READ | CL_MAP_WRITE,
-			0, BufferSizeBytes,
-			WaitEventCount, WaitEvents, CompletionEvent,
-			&Err
-		);*/
 		cl_event* ReadEvents = new cl_event[this->Structure->Outputs.size()];
 		cl_uint* Cursor = new cl_uint[this->Structure->Dimensions+1];
 		Cursor[0] = Timestep;

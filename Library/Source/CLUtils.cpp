@@ -12,9 +12,11 @@ namespace CLUtils {
 	cl_uint SetKernelArguments(cl_kernel Kernel, cl_uint Count, const ArgumentDefintion* Definitions) {
 		cl_uint Err;
 		for (size_t Index = 0; Index < Count; Index++) {
-			Err = clSetKernelArg(Kernel, Index, Definitions[Index].Size, Definitions[Index].Value);
-			if (Err != CL_SUCCESS) {
-				return Err;
+			if (Definitions[Index].Size > 0 && Definitions[Index].Value != nullptr) {
+				Err = clSetKernelArg(Kernel, Index, Definitions[Index].Size, Definitions[Index].Value);
+				if (Err != CL_SUCCESS) {
+					return Err;
+				}
 			}
 		}
 		return CL_SUCCESS;

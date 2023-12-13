@@ -4,8 +4,7 @@ namespace APM::Scene::RenderDispatcher {
 	Base::Task::Task(cl_context Context, cl_command_queue Queue, cl_kernel Kernel) {
 		this->Context = Context; clRetainContext(Context);
 		this->Queue = Queue; clRetainCommandQueue(Queue);
-		this->Kernel = Kernel; clRetainKernel(Kernel);
-		printf("help me %p %p %p\n", this, Context, this->Context);
+		this->Kernel = clCloneKernel(Kernel, nullptr);
 	}
 	
 	Base::Task::~Task() {
