@@ -178,7 +178,7 @@ int main() {
 		float ValueR = OutputBufferR[LastProgress];
 		printf("Debug: %f\n", DebugBuffer[LastProgress]);
 		printf("L: %f, R: %f\n", ValueL, ValueR);
-		unsigned int Percent = floorf(((float)LastProgress/(LengthInSamples-1.0f))*100.0f);
+		unsigned int Percent = floorf(((float)LastProgress/(LengthInSamples/32-1.0f))*100.0f);
 		LastPercent = Percent;
 		printf("%i%% complete..\n", LastPercent);
 	}

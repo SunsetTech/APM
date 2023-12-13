@@ -41,7 +41,7 @@ namespace APM {
 		//Process simulations
 		for (size_t TaskIndex = 0; TaskIndex < Tasks.size(); TaskIndex++) {
 			Tasks[TaskIndex]->EnqueueFlushMemory(Iteration%2, 0, NULL, UnmapEvents + TaskIndex);
-			Tasks[TaskIndex]->EnqueueExecution(TimeDelta, Timestep, 1, UnmapEvents + TaskIndex, CompletionEvents + TaskIndex);
+			Tasks[TaskIndex]->EnqueueExecution(TimeDelta, Timestep, 32, 1, UnmapEvents + TaskIndex, CompletionEvents + TaskIndex);
 			Tasks[TaskIndex]->EnqueueReadyMemory(Timestep, 1, CompletionEvents + TaskIndex, MapEvents + TaskIndex);
 		}
 		
@@ -122,7 +122,7 @@ namespace APM {
 					}
 				}
 				
-				for (size_t Iteration = 0; Iteration < CurrentJob.Iterations; Iteration++) {
+				for (size_t Iteration = 0; Iteration < CurrentJob.Iterations/32; Iteration++) {
 					Engine::ProcessIteration(Tasks, CurrentJob.Scene.Connections, CurrentJob.Outputs, Iteration, CurrentJob.TimeDelta);
 					CurrentJob.ProgressTracker->store(Iteration);
 					CurrentJob.ProgressTracker->notify_all();

@@ -53,17 +53,25 @@ namespace APM::Scene::RenderDispatcher {
 		CLUtils::PrintAndHaltIfError("Setting initial kernel arguments in WaveStructure task", Err);
 	}
 	
-	void WaveStructure::Task::EnqueueExecution(float TimeDelta, cl_uint Timestep, cl_uint WaitEventCount, const cl_event *WaitEvents, cl_event *CompletionEvent) {
-		
+	void WaveStructure::Task::EnqueueExecution(float TimeDelta, cl_uint Timestep, cl_uint Iterations, cl_uint WaitEventCount, const cl_event *WaitEvents, cl_event *CompletionEvent) {
 		cl_int Err = clSetKernelArg(this->Kernel, 5, sizeof(cl_float), &TimeDelta);
 		Err = clSetKernelArg(this->Kernel, 6, sizeof(cl_uint), &Timestep);
 		size_t GlobalSize[] = {0,0,0};
 		for (unsigned int Dimension = 0; Dimension < this->Structure->Dimensions; Dimension++) {
 			GlobalSize[Dimension] = this->Structure->SpatialBounds[Dimension];
 		}
-		//cl_event ExecutionEvent;
-		Err = clEnqueueNDRangeKernel(this->Queue, this->Kernel, this->Structure->Dimensions, NULL, GlobalSize, NULL, WaitEventCount, WaitEvents, CompletionEvent);
-		CLUtils::PrintAndHaltIfError("Enqueuing execution in WaveStructure task", Err);
+		cl_event* ExecutionEvents = new cl_event[Iterations+1];
+		clEnqueueMarkerWithWaitList(this->Queue, WaitEventCount, WaitEvents, ExecutionEvents+0);
+		for (cl_uint Iteration = 0; Iteration < Iterations; Iteration++) {
+			cl_uint EventIndex = Iteration+1;
+			cl_uint LocalTimestep = (Timestep+Iteration)%2;
+			clSetKernelArg(this->Kernel, 6, sizeof(cl_uint), &LocalTimestep);
+			Err = clEnqueueNDRangeKernel(this->Queue, this->Kernel, this->Structure->Dimensions, NULL, GlobalSize, NULL, 1, ExecutionEvents+EventIndex-1, ExecutionEvents+EventIndex);
+			CLUtils::PrintAndHaltIfError("Enqueuing execution in WaveStructure task", Err);
+		}
+		CLUtils::ReleaseEvents(Iterations, ExecutionEvents);
+		*CompletionEvent = ExecutionEvents[Iterations];
+		delete[] ExecutionEvents;
 	}
 	
 	void WaveStructure::Task::EnqueueReadyMemory(cl_uint Timestep, cl_uint WaitEventCount, const cl_event *WaitEvents, cl_event *CompletionEvent) {

@@ -15,7 +15,7 @@ namespace APM::Scene::RenderDispatcher {
 					void SetupSpacetimeBuffer();
 				public:
 					Task(cl_context Context, cl_command_queue Queue, cl_kernel Kernel, Object::WaveStructure* Bundle);
-					void EnqueueExecution(float TimeDelta, cl_uint Timestep, cl_uint WaitEventCount, const cl_event *WaitEvents, cl_event *CompletionEvent) override;
+					void EnqueueExecution(float TimeDelta, cl_uint Timestep, cl_uint Iterations, cl_uint WaitEventCount, const cl_event *WaitEvents, cl_event *CompletionEvent) override;
 					void EnqueueReadyMemory(cl_uint Timestep, cl_uint WaitEventCount, const cl_event *WaitEvents, cl_event *CompletionEvent) override;
 					void EnqueueFlushMemory(cl_uint Timestep, cl_uint WaitEventCount, const cl_event *WaitEvents, cl_event *CompletionEvent) override;
 					float GetSourceValue(size_t ID, size_t Timestep) override;

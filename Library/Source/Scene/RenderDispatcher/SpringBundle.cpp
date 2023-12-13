@@ -47,7 +47,7 @@ namespace APM::Scene::RenderDispatcher {
 		this->SetupSpacetimeBuffer();
 	}
 	
-	void SpringBundle::SBTask::EnqueueExecution(cl_float TimeDelta, cl_uint Timestep, cl_uint WaitEventCount, const cl_event *WaitEvents, cl_event *CompletionEvent) {
+	void SpringBundle::SBTask::EnqueueExecution(cl_float TimeDelta, cl_uint Timestep, cl_uint Iterations, cl_uint WaitEventCount, const cl_event *WaitEvents, cl_event *CompletionEvent) {
 		const CLUtils::ArgumentDefintion Arguments[] = {
 			{sizeof(cl_mem), &SpringParameterBufferCL},
 			{sizeof(cl_mem), &NodeParameterBufferCL},
@@ -62,8 +62,18 @@ namespace APM::Scene::RenderDispatcher {
 		CLUtils::PrintAndHaltIfError("Setting kernel arguments in SpringBundle task", Err);
 		
 		size_t GlobalSize[] = {this->Bundle->FiberCount, this->Bundle->FiberLength};
-		Err = clEnqueueNDRangeKernel(this->Queue, this->Kernel, 2, NULL, GlobalSize, NULL, WaitEventCount, WaitEvents, CompletionEvent);
-		CLUtils::PrintAndHaltIfError("Enqueuing execution in SpringBundle task", Err);
+		cl_event* ExecutionEvents = new cl_event[Iterations+1];
+		clEnqueueMarkerWithWaitList(this->Queue, WaitEventCount, WaitEvents, ExecutionEvents+0);
+		for (cl_uint Iteration = 0; Iteration < Iterations; Iteration++) {
+			cl_uint EventIndex = Iteration+1;
+			cl_uint LocalTimestep = (Timestep+Iteration)%2;
+			clSetKernelArg(this->Kernel, 5, sizeof(cl_uint), &LocalTimestep);
+			Err = clEnqueueNDRangeKernel(this->Queue, this->Kernel, 2, NULL, GlobalSize, NULL, 1, ExecutionEvents+EventIndex-1, ExecutionEvents+EventIndex);
+			CLUtils::PrintAndHaltIfError("Enqueuing execution in SpringBundle task", Err);
+		}
+		CLUtils::ReleaseEvents(Iterations, ExecutionEvents);
+		*CompletionEvent = ExecutionEvents[Iterations];
+		delete[] ExecutionEvents;
 	}
 	
 	void SpringBundle::SBTask::EnqueueReadyMemory(cl_uint Timestep, cl_uint WaitEventCount, const cl_event *WaitEvents, cl_event *CompletionEvent) {
