@@ -1,17 +1,16 @@
-#define CL_TARGET_OPENCL_VERSION 200
-#define CL_USE_DEPRECATED_OPENCL_1_2_APIS
-
-#include "imgui.h"
-#include "backends/imgui_impl_glfw.h"
-#include "backends/imgui_impl_opengl3.h"
-#include <GLFW/glfw3.h>
+//#include "imgui.h"
+//#include "backends/imgui_impl_glfw.h"
+//#include "backends/imgui_impl_opengl3.h"
+//#include <GLFW/glfw3.h>
 
 #include <array>
+#include <cassert>
 #include <cstdio>
 #include <cstdlib>
 #include <ctime>
 #include <cmath>
 #include <cstring>
+#include <string>
 
 #include <CL/cl.h>
 extern "C" {
@@ -24,18 +23,15 @@ extern "C" {
 
 #include "tinywav.h"
 
-#include "FDM.cl.h"
-#include "Spring.cl.h"
-
 void Visualize2DSlice(cl_float* Buffer, const cl_uint Dimensions[2]) {
 	cl_uint Cursor[2];
 	for (cl_uint Y = 0; Y < Dimensions[1]; Y++) {
 		Cursor[1] = Y;
 		for (cl_uint X = 0; X < Dimensions[0]; X++) {
 			Cursor[0] = X;
-			cl_uint Index = Math::MapIndex<2>(Cursor, Dimensions);
+			cl_uint Index = APM::Math::MapIndex<2>(Cursor, Dimensions);
 			cl_float Value = Buffer[Index];
-			cl_uint Brightness = Math::Clamp<cl_int>(0, floor((Value+1.0f)/2.0f*255.0f),255);
+			cl_uint Brightness = APM::Math::Clamp<cl_int>(0, floor((Value+1.0f)/2.0f*255.0f),255);
 			printf("\x1b[38;2;%i;%i;%im█", Brightness, Brightness, Brightness);
 		}
 		printf("\x1b[0m\n");
@@ -186,7 +182,7 @@ void Test_2D_Buffered_SOG(cl_context Context, cl_device_id Device, cl_command_qu
 	*/
 }
 
-static void glfw_error_callback(int error, const char* description) {
+/*static void glfw_error_callback(int error, const char* description) {
 	fprintf(stderr, "GLFW Error %d: %s\n", error, description);
 }
 
@@ -279,4 +275,105 @@ void Test_GUI() {
 
 	glfwDestroyWindow(window);
 	glfwTerminate();
+}*/
+
+void Test_DeviceEnqueue(cl_context Context, cl_device_id Device, cl_command_queue Queue) {
+	const char* SourcePaths[] = {"OpenCL/Kernels/Test/DeviceEnqueue.cl.c"};
+	
+	cl_program Program = CLUtils::CompileProgramFromFiles( //TODO make this a provided var?
+		Context, Device, 
+		std::size(SourcePaths), SourcePaths,
+		"-I OpenCL/Common/ -cl-std=CL2.0"
+	);
+	
+	cl_int Err;
+	cl_kernel Kernel = clCreateKernel(Program, "Test_DeviceEnqueue", &Err);
+	CLUtils::PrintAndHaltIfError("Creating kernel for Test_DeviceEnqueue",Err);
+	
+	cl_uint BlockSize = 512;
+	cl_uint Iterations = (44100*3)/BlockSize;
+	cl_uint BufferSize = 256*256;
+	cl_uint* Buffer = new cl_uint[BufferSize];
+	std::memset(Buffer, 0, BufferSize*sizeof(cl_uint));
+	cl_mem BufferCL = clCreateBuffer(Context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, sizeof(cl_uint) * BufferSize, Buffer, &Err);
+	CLUtils::PrintAndHaltIfError("Creating buffer", Err);
+	const CLUtils::ArgumentDefintion Arguments[] = {
+		{sizeof(cl_uint), &BlockSize},
+		{sizeof(cl_uint), &BufferSize},
+		{sizeof(cl_mem), &BufferCL},
+	};
+	Err = CLUtils::SetKernelArguments(Kernel, std::size(Arguments), Arguments);
+	CLUtils::PrintAndHaltIfError("Setting kernel args", Err);
+	size_t GlobalSize[] = {1};
+	long long StartTime = Utils::Time::Milliseconds();
+	for (cl_uint Iteration = 0; Iteration < Iterations; Iteration++) {
+		printf("%i/%i\n",Iteration,Iterations-1);
+		cl_event ExecutionEvent;
+		Err = clEnqueueNDRangeKernel(
+			Queue, Kernel,
+			1,
+			nullptr, GlobalSize, nullptr,
+			0, nullptr, &ExecutionEvent
+		);
+		CLUtils::PrintAndHaltIfError("Enqueuing kernel", Err);
+		Err = clWaitForEvents(1, &ExecutionEvent);
+		CLUtils::PrintAndHaltIfError("Waiting for completion", Err);
+		Err = clReleaseEvent(ExecutionEvent);
+		CLUtils::PrintAndHaltIfError("Releasing event", Err);
+	}
+	printf("Finished in %lld seconds\n", (Utils::Time::Milliseconds()-StartTime)/1000LL);
+	Err = clEnqueueReadBuffer(Queue, BufferCL, CL_TRUE, 0, sizeof(cl_uint)*BufferSize, Buffer, 0, nullptr, nullptr);
+	CLUtils::PrintAndHaltIfError("Reading Buffer", Err);
+	for (cl_uint Index = 0; Index < BufferSize; Index++) {
+		//printf("Buffer[%u] = %u\n", Index, Buffer[Index]);
+		assert(Buffer[Index] == Iterations*BlockSize);
+	}
+	printf("All values good\n");
+}
+
+int main() {
+	cl_uint NumPlatforms;
+	clGetPlatformIDs(0, nullptr, &NumPlatforms);
+	cl_platform_id* Platforms = new cl_platform_id[NumPlatforms];
+	clGetPlatformIDs(NumPlatforms, Platforms, nullptr);
+	for (cl_uint PlatformIndex = 0; PlatformIndex < NumPlatforms; PlatformIndex++) {
+		size_t PlatformNameLength;
+		clGetPlatformInfo(Platforms[PlatformIndex], CL_PLATFORM_NAME, 0, nullptr, &PlatformNameLength);
+		char* PlatformName = new char[PlatformNameLength];
+		clGetPlatformInfo(Platforms[PlatformIndex], CL_PLATFORM_NAME, PlatformNameLength*sizeof(char), PlatformName, nullptr);
+		printf("%u) %s\n", PlatformIndex+1, PlatformName);
+		delete[] PlatformName;
+	}
+	printf("Select platform: ");
+	cl_uint PlatformChoice;
+	scanf("%u",&PlatformChoice);
+	cl_platform_id Platform = Platforms[PlatformChoice-1];
+	delete[] Platforms;
+	
+	cl_uint NumDevices;
+	clGetDeviceIDs(Platform, CL_DEVICE_TYPE_ALL, 0, nullptr, &NumDevices);
+	cl_device_id* Devices = new cl_device_id[NumDevices];
+	clGetDeviceIDs(Platform, CL_DEVICE_TYPE_ALL, NumDevices, Devices, nullptr);
+	for (cl_uint DeviceIndex = 0; DeviceIndex < NumDevices; DeviceIndex++) {
+		size_t DeviceNameLength;
+		clGetDeviceInfo(Devices[DeviceIndex], CL_DEVICE_NAME, 0, nullptr, &DeviceNameLength);
+		char* DeviceName = new char[DeviceNameLength];
+		clGetDeviceInfo(Devices[DeviceIndex], CL_DEVICE_NAME, DeviceNameLength, DeviceName, nullptr);
+		printf("%u) %s\n", DeviceIndex+1, DeviceName);
+		delete[] DeviceName;
+	}
+	printf("Select device: ");
+	cl_uint DeviceChoice;
+	scanf("%u", &DeviceChoice);
+	cl_device_id Device = Devices[DeviceChoice-1];
+	delete[] Devices;
+	
+	cl_context Context = clCreateContext(nullptr, 1, &Device, nullptr, nullptr, nullptr);	
+	cl_command_queue Queue = clCreateCommandQueue(Context, Device, CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE, nullptr);
+	
+	const char* TestNames = {"Device Enqueue"};
+	Test_DeviceEnqueue(Context, Device, Queue);
+	clReleaseCommandQueue(Queue);
+	clReleaseContext(Context);
+	return 0;
 }

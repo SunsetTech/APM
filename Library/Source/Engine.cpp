@@ -19,12 +19,13 @@ namespace APM {
 		this->JobsThread.join();
 	}
 	
-	void Engine::EnqueueJob(Scene::Description Scene, float TimeDelta, size_t Iterations, std::vector<Output> Outputs, std::atomic_size_t* ProgressTracker, std::atomic_bool* CompletionSignal) {
+	void Engine::EnqueueJob(Scene::Description Scene, float TimeDelta, size_t Iterations, size_t BlockSize, std::vector<Output> Outputs, std::atomic_size_t* ProgressTracker, std::atomic_bool* CompletionSignal) {
 		std::lock_guard<std::mutex> lock(this->QueueMutex);
 		this->Jobs.push((Job){
 			.Scene = Scene,
 			.TimeDelta = TimeDelta,
 			.Iterations = Iterations,
+			.BlockSize = BlockSize,
 			.Outputs = Outputs,
 			.ProgressTracker = ProgressTracker,
 			.CompletionSignal = CompletionSignal,
@@ -33,27 +34,28 @@ namespace APM {
 		this->CheckForWork = true;
 		this->CheckForWork.notify_one();
 	}
-	void Engine::ProcessIteration(std::vector<Scene::RenderDispatcher::Base::Task *> Tasks, std::vector<Scene::Description::Connection> Connections, std::vector<Output> Outputs, cl_uint Iteration, float TimeDelta) {
-		cl_uint Timestep = (Iteration+1)%2;
-		cl_event* CompletionEvents = new cl_event[Tasks.size()];
-		cl_event* MapEvents = new cl_event[Tasks.size()];
-		cl_event* UnmapEvents = new cl_event[Tasks.size()];
-		//Process simulations
+	void Engine::ProcessBlock(std::vector<Scene::RenderDispatcher::Base::Task *> Tasks, std::vector<Scene::Description::Connection> Connections, std::vector<Output> Outputs, cl_uint BlockIteration, size_t BlockSize, float TimeDelta) {
+		cl_uint StartIteration = BlockIteration*BlockSize;
+		cl_uint StartTimestep = (StartIteration+1)%2;
+		
+		cl_event* ReadyEvents = new cl_event[Tasks.size()];
 		for (size_t TaskIndex = 0; TaskIndex < Tasks.size(); TaskIndex++) {
-			Tasks[TaskIndex]->EnqueueFlushMemory(Iteration%2, 0, NULL, UnmapEvents + TaskIndex);
-			Tasks[TaskIndex]->EnqueueExecution(TimeDelta, Timestep, 32, 1, UnmapEvents + TaskIndex, CompletionEvents + TaskIndex);
-			Tasks[TaskIndex]->EnqueueReadyMemory(Timestep, 1, CompletionEvents + TaskIndex, MapEvents + TaskIndex);
+			Scene::RenderDispatcher::Base::Task* CurrentTask = Tasks[TaskIndex];
+			cl_event ExecutionEvent, FlushEvent;
+			CurrentTask->EnqueueFlushMemory(BlockSize,            0, nullptr,         &FlushEvent          );
+			CurrentTask->EnqueueExecution  (BlockSize, TimeDelta, 1, &FlushEvent,     &ExecutionEvent      );
+			CurrentTask->EnqueueReadyMemory(BlockSize,            1, &ExecutionEvent, ReadyEvents+TaskIndex);
+			clReleaseEvent(FlushEvent    );
+			clReleaseEvent(ExecutionEvent);
 		}
 		
 		for (size_t EventIndex = 0; EventIndex < Tasks.size(); EventIndex++) {
-			clWaitForEvents(1, MapEvents + EventIndex);
-			clReleaseEvent(UnmapEvents[EventIndex]);
-			clReleaseEvent(MapEvents[EventIndex]);
-			clReleaseEvent(CompletionEvents[EventIndex]);
+			clWaitForEvents(1, ReadyEvents + EventIndex);
+			clReleaseEvent(ReadyEvents[EventIndex]);
 		}
 		
 		//Process connections
-		for (size_t ConnectionIndex = 0; ConnectionIndex < Connections.size(); ConnectionIndex++) {
+		/*for (size_t ConnectionIndex = 0; ConnectionIndex < Connections.size(); ConnectionIndex++) {
 			Scene::Description::Connection Connection = Connections[ConnectionIndex];
 			Scene::RenderDispatcher::Base::Task* Dest = Tasks[Connection.SinkObjectID];
 			Scene::RenderDispatcher::Base::Task* Src = Tasks[Connection.SourceObjectID];
@@ -66,19 +68,9 @@ namespace APM {
 			Output CurrentOutput = Outputs[OutputIndex];
 			float Value = Tasks[CurrentOutput.Object]->GetSourceValue(CurrentOutput.Plug, Timestep);
 			CurrentOutput.Buffer[Iteration] = Value;
-		}
-		
-		//Commit changes
-		/*for (size_t TaskIndex = 0; TaskIndex < Tasks.size(); TaskIndex++) {
-			Tasks[TaskIndex]->EnqueueFlushMemory(Timestep, 0, NULL, UnmapEvents + TaskIndex);
-		}
-		for (size_t EventIndex = 0; EventIndex < Tasks.size(); EventIndex++) {
-			clWaitForEvents(1, UnmapEvents + EventIndex);
-			clReleaseEvent(UnmapEvents[EventIndex]);
 		}*/
-		delete[] CompletionEvents;
-		delete[] MapEvents;
-		delete[] UnmapEvents;
+		
+		delete[] ReadyEvents;
 	}
 	
 	void Engine::ProcessJobs() {
@@ -122,11 +114,20 @@ namespace APM {
 					}
 				}
 				
-				for (size_t Iteration = 0; Iteration < CurrentJob.Iterations/32; Iteration++) {
-					Engine::ProcessIteration(Tasks, CurrentJob.Scene.Connections, CurrentJob.Outputs, Iteration, CurrentJob.TimeDelta);
-					CurrentJob.ProgressTracker->store(Iteration);
+				size_t BlockIterations = CurrentJob.Iterations / CurrentJob.BlockSize;
+				size_t Remainder = CurrentJob.Iterations * CurrentJob.BlockSize;
+				for (size_t BlockIteration = 0; BlockIteration < BlockIterations; BlockIteration++) {
+					Engine::ProcessBlock(Tasks, CurrentJob.Scene.Connections, CurrentJob.Outputs, BlockIteration, CurrentJob.BlockSize, CurrentJob.TimeDelta);
+					CurrentJob.ProgressTracker->store(BlockIteration*CurrentJob.BlockSize);
 					CurrentJob.ProgressTracker->notify_all();
 				}
+				
+				if (Remainder > 0) {
+					Engine::ProcessBlock(Tasks, CurrentJob.Scene.Connections, CurrentJob.Outputs, BlockIterations, Remainder, CurrentJob.TimeDelta);
+					CurrentJob.ProgressTracker->store(CurrentJob.Iterations);
+					CurrentJob.ProgressTracker->notify_all();
+				};
+				
 				CurrentJob.CompletionSignal->store(true);
 				CurrentJob.CompletionSignal->notify_all();
 			}

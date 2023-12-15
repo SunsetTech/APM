@@ -82,7 +82,7 @@ int main() {
 	TestBundle.Outputs.push_back({0,TestBundle.FiberLength-2,(float)TestBundle.FiberLength-2.0f});
 	TestScene.Objects.push_back(&TestBundle);
 	
-	cl_uint TestStructureBounds[] = {16, 16};
+	cl_uint TestStructureBounds[] = {64, 64};
 	APM::Scene::Object::WaveStructure TestStructure(2, TestStructureBounds);
 	cl_uint Cursor[2];
 	for (cl_uint X = 0; X < TestStructureBounds[0]; X++) {

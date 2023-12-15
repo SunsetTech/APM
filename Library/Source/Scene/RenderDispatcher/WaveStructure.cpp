@@ -26,7 +26,7 @@ namespace APM::Scene::RenderDispatcher {
 		CLUtils::PrintAndHaltIfError("Creating SpacetimeBufferCL in WaveStructure task", Err);
 	}
 	
-	WaveStructure::Task::Task(cl_context Context, cl_command_queue Queue, cl_kernel Kernel, Object::WaveStructure* Structure): Base::Task(Context, Queue, Kernel) {
+	WaveStructure::Task::Task(cl_context Context, cl_command_queue Queue, cl_kernel Kernel, size_t MaxBlockSize, Object::WaveStructure* Structure): Base::Task(Context, Queue, Kernel, MaxBlockSize) {
 		this->Structure = Structure;
 		this->SpacetimeBounds = new cl_uint[Structure->Dimensions+1];
 		this->SpacetimeBounds[0] = 2;
@@ -51,6 +51,35 @@ namespace APM::Scene::RenderDispatcher {
 		};
 		cl_int Err = CLUtils::SetKernelArguments(this->Kernel, std::size(Arguments), Arguments);
 		CLUtils::PrintAndHaltIfError("Setting initial kernel arguments in WaveStructure task", Err);
+	}
+	
+	void WaveStructure::Task::EnqueueFlushMemory(cl_uint BlockSize, cl_uint WaitEventCount, const cl_event *WaitEvents, cl_event *CompletionEvent) {
+		/*cl_event* WriteEvents = new cl_event[this->Structure->Inputs.size()];
+		cl_uint* Cursor = new cl_uint[this->Structure->Dimensions+1];
+		Cursor[0] = Timestep;
+		for (size_t PlugIndex = 0; PlugIndex < this->Structure->Inputs.size(); PlugIndex++) {
+			for (unsigned int Dimension = 0; Dimension < this->Structure->Dimensions; Dimension++) {
+				Cursor[Dimension+1] = this->Structure->Inputs[PlugIndex].Position[Dimension];
+			}
+			size_t BufferOffset = Math::MapIndex(this->Structure->Dimensions+1, Cursor, this->SpacetimeBounds);
+			size_t BufferOffsetBytes = sizeof(Wave_PrecisionType) * BufferOffset;
+			const cl_int Err = clEnqueueWriteBuffer(
+				this->Queue,
+				this->SpacetimeBufferCL,
+				CL_FALSE,
+				BufferOffsetBytes,
+				sizeof(Wave_PrecisionType),
+				this->SpacetimeBuffer + BufferOffset,
+				WaitEventCount, WaitEvents, WriteEvents + PlugIndex
+			);
+			CLUtils::PrintAndHaltIfError("Enqueuing read buffer in WaveStructure task", Err);
+		}
+		clEnqueueMarkerWithWaitList(
+			this->Queue,
+			this->Structure->Inputs.size(), WriteEvents,
+			CompletionEvent
+		);
+		CLUtils::ReleaseEvents(this->Structure->Inputs.size(), WriteEvents);*/
 	}
 	
 	void WaveStructure::Task::EnqueueExecution(float TimeDelta, cl_uint Timestep, cl_uint Iterations, cl_uint WaitEventCount, const cl_event *WaitEvents, cl_event *CompletionEvent) {
@@ -103,34 +132,6 @@ namespace APM::Scene::RenderDispatcher {
 		CLUtils::ReleaseEvents(this->Structure->Outputs.size(), ReadEvents);
 	}
 	
-	void WaveStructure::Task::EnqueueFlushMemory(cl_uint Timestep, cl_uint WaitEventCount, const cl_event *WaitEvents, cl_event *CompletionEvent) {
-		cl_event* WriteEvents = new cl_event[this->Structure->Inputs.size()];
-		cl_uint* Cursor = new cl_uint[this->Structure->Dimensions+1];
-		Cursor[0] = Timestep;
-		for (size_t PlugIndex = 0; PlugIndex < this->Structure->Inputs.size(); PlugIndex++) {
-			for (unsigned int Dimension = 0; Dimension < this->Structure->Dimensions; Dimension++) {
-				Cursor[Dimension+1] = this->Structure->Inputs[PlugIndex].Position[Dimension];
-			}
-			size_t BufferOffset = Math::MapIndex(this->Structure->Dimensions+1, Cursor, this->SpacetimeBounds);
-			size_t BufferOffsetBytes = sizeof(Wave_PrecisionType) * BufferOffset;
-			const cl_int Err = clEnqueueWriteBuffer(
-				this->Queue,
-				this->SpacetimeBufferCL,
-				CL_FALSE,
-				BufferOffsetBytes,
-				sizeof(Wave_PrecisionType),
-				this->SpacetimeBuffer + BufferOffset,
-				WaitEventCount, WaitEvents, WriteEvents + PlugIndex
-			);
-			CLUtils::PrintAndHaltIfError("Enqueuing read buffer in WaveStructure task", Err);
-		}
-		clEnqueueMarkerWithWaitList(
-			this->Queue,
-			this->Structure->Inputs.size(), WriteEvents,
-			CompletionEvent
-		);
-		CLUtils::ReleaseEvents(this->Structure->Inputs.size(), WriteEvents);	
-	}
 	
 	float WaveStructure::Task::GetSourceValue(size_t ID, size_t Timestep) { //TODO
 		Object::WaveStructure::Plug CurrentPlug = this->Structure->Outputs[ID];

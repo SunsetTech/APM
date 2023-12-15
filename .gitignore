@@ -4,5 +4,6 @@
 *.o
 *.wav
 Binary/APM
+Tests/Tests
 .clangd
 .vim-sessions/

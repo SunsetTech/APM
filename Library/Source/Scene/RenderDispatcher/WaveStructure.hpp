@@ -14,10 +14,10 @@ namespace APM::Scene::RenderDispatcher {
 					cl_mem WaveVelocityCL, TransferEfficiencyCL, SpacetimeBufferCL, SpacetimeBoundsCL;
 					void SetupSpacetimeBuffer();
 				public:
-					Task(cl_context Context, cl_command_queue Queue, cl_kernel Kernel, Object::WaveStructure* Bundle);
-					void EnqueueExecution(float TimeDelta, cl_uint Timestep, cl_uint Iterations, cl_uint WaitEventCount, const cl_event *WaitEvents, cl_event *CompletionEvent) override;
-					void EnqueueReadyMemory(cl_uint Timestep, cl_uint WaitEventCount, const cl_event *WaitEvents, cl_event *CompletionEvent) override;
-					void EnqueueFlushMemory(cl_uint Timestep, cl_uint WaitEventCount, const cl_event *WaitEvents, cl_event *CompletionEvent) override;
+					Task(cl_context Context, cl_command_queue Queue, cl_kernel Kernel, size_t MaxBlockSize, Object::WaveStructure* Bundle);
+					void EnqueueFlushMemory(cl_uint BlockSize, cl_uint WaitEventCount, const cl_event *WaitEvents, cl_event *CompletionEvent) override;
+					void EnqueueExecution(cl_uint BlockSize, float TimeDelta, cl_uint WaitEventCount, const cl_event *WaitEvents, cl_event *CompletionEvent) override;
+					void EnqueueReadyMemory(cl_uint BlockSize, cl_uint WaitEventCount, const cl_event *WaitEvents, cl_event *CompletionEvent) override;
 					float GetSourceValue(size_t ID, size_t Timestep) override;
 					void SetSinkValue(size_t ID, size_t Timestep, float Value) override;
 					~Task();
