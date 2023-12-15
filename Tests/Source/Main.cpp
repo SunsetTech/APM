@@ -277,6 +277,65 @@ void Test_GUI() {
 	glfwTerminate();
 }*/
 
+void Test_EnqueueAndWait(cl_context Context, cl_device_id Device, cl_command_queue Queue) {
+	const char* SourcePaths[] = {"OpenCL/Kernels/Test/DeviceEnqueue.cl.c"};
+	
+	cl_program Program = CLUtils::CompileProgramFromFiles( //TODO make this a provided var?
+		Context, Device, 
+		std::size(SourcePaths), SourcePaths,
+		"-I OpenCL/Common/ -cl-std=CL2.0"
+	);
+	
+	cl_int Err;
+	cl_kernel Kernel = clCreateKernel(Program, "Test_IncrementLocation", &Err);
+	CLUtils::PrintAndHaltIfError("Creating kernel for Test_DeviceEnqueue",Err);
+	
+	cl_uint BlockSize = 64;
+	cl_uint Iterations = (44100)/BlockSize;
+	cl_uint BufferSize = 512*512;
+	cl_uint* Buffer = new cl_uint[BufferSize];
+	std::memset(Buffer, 0, BufferSize*sizeof(cl_uint));
+	cl_mem BufferCL = clCreateBuffer(Context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, sizeof(cl_uint) * BufferSize, Buffer, &Err);
+	CLUtils::PrintAndHaltIfError("Creating buffer", Err);
+	const CLUtils::ArgumentDefintion Arguments[] = {
+		//{sizeof(cl_uint), &BlockSize},
+		//{sizeof(cl_uint), &BufferSize},
+		{sizeof(cl_mem), &BufferCL},
+	};
+	Err = CLUtils::SetKernelArguments(Kernel, std::size(Arguments), Arguments);
+	CLUtils::PrintAndHaltIfError("Setting kernel args", Err);
+	size_t GlobalSize[] = {BufferSize};
+	long long StartTime = Utils::Time::Milliseconds();
+	for (cl_uint Iteration = 0; Iteration < Iterations; Iteration++) {
+		printf("%i/%i\n",Iteration,Iterations-1);
+		cl_event StartEvent = clCreateUserEvent(Context, nullptr);
+		clSetUserEventStatus(StartEvent, CL_COMPLETE);
+		for (cl_uint SubIteration = 0;  SubIteration < BlockSize; SubIteration++) {
+			cl_event ExecutionEvent;
+			Err = clEnqueueNDRangeKernel(
+				Queue, Kernel,
+				1,
+				nullptr, GlobalSize, nullptr,
+				0, nullptr, &ExecutionEvent
+			); /*clReleaseEvent(StartEvent); StartEvent = ExecutionEvent;
+			CLUtils::PrintAndHaltIfError("Enqueuing kernel", Err);*/
+			Err = clWaitForEvents(1, &ExecutionEvent);
+			CLUtils::PrintAndHaltIfError("Waiting for completion", Err);
+			Err = clReleaseEvent(ExecutionEvent);
+			CLUtils::PrintAndHaltIfError("Releasing event", Err);
+		}
+	}
+	printf("Finished in %lld milliseconds\n", (Utils::Time::Milliseconds()-StartTime));
+	Err = clEnqueueReadBuffer(Queue, BufferCL, CL_TRUE, 0, sizeof(cl_uint)*BufferSize, Buffer, 0, nullptr, nullptr);
+	CLUtils::PrintAndHaltIfError("Reading Buffer", Err);
+	for (cl_uint Index = 0; Index < BufferSize; Index++) {
+		//printf("Buffer[%u] = %u\n", Index, Buffer[Index]);
+		assert(Buffer[Index] == Iterations*BlockSize);
+	}
+	printf("All values good\n");
+}
+
+
 void Test_BlockFlood(cl_context Context, cl_device_id Device, cl_command_queue Queue) {
 	const char* SourcePaths[] = {"OpenCL/Kernels/Test/DeviceEnqueue.cl.c"};
 	
@@ -325,7 +384,7 @@ void Test_BlockFlood(cl_context Context, cl_device_id Device, cl_command_queue Q
 		Err = clReleaseEvent(StartEvent);
 		CLUtils::PrintAndHaltIfError("Releasing event", Err);
 	}
-	printf("Finished in %lld seconds\n", (Utils::Time::Milliseconds()-StartTime)/1000LL);
+	printf("Finished in %lld milliseconds\n", (Utils::Time::Milliseconds()-StartTime));
 	Err = clEnqueueReadBuffer(Queue, BufferCL, CL_TRUE, 0, sizeof(cl_uint)*BufferSize, Buffer, 0, nullptr, nullptr);
 	CLUtils::PrintAndHaltIfError("Reading Buffer", Err);
 	for (cl_uint Index = 0; Index < BufferSize; Index++) {
@@ -379,7 +438,7 @@ void Test_DeviceEnqueue(cl_context Context, cl_device_id Device, cl_command_queu
 		Err = clReleaseEvent(ExecutionEvent);
 		CLUtils::PrintAndHaltIfError("Releasing event", Err);
 	}
-	printf("Finished in %lld seconds\n", (Utils::Time::Milliseconds()-StartTime)/1000LL);
+	printf("Finished in %lld milliseconds\n", (Utils::Time::Milliseconds()-StartTime));
 	Err = clEnqueueReadBuffer(Queue, BufferCL, CL_TRUE, 0, sizeof(cl_uint)*BufferSize, Buffer, 0, nullptr, nullptr);
 	CLUtils::PrintAndHaltIfError("Reading Buffer", Err);
 	for (cl_uint Index = 0; Index < BufferSize; Index++) {
@@ -432,12 +491,15 @@ int main() {
 	cl_command_queue DeviceQueue = clCreateCommandQueue(Context, Device, CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE | CL_QUEUE_ON_DEVICE | CL_QUEUE_ON_DEVICE_DEFAULT, nullptr);
 	
 	const char* TestNames = {"Device Enqueue"};
+	long long EAWStart = Utils::Time::Nanoseconds();
+	Test_EnqueueAndWait(Context, Device, Queue);
 	long long DEStart = Utils::Time::Nanoseconds();
 	Test_DeviceEnqueue(Context, Device, Queue);
 	long long BFStart = Utils::Time::Nanoseconds();
 	Test_BlockFlood(Context, Device, Queue);
 	long long BFEnd = Utils::Time::Nanoseconds();
-	printf("BlockFlood is %lldx faster\n", (BFStart - DEStart) / (BFEnd - BFStart));
+	printf("BlockFlood is %lldx faster than DeviceEnqueue\n", (BFStart - DEStart) / (BFEnd - BFStart));
+	printf("BlockFlood is %lldx faster than EnqueueAndWait\n", (DEStart - EAWStart) / (BFEnd - BFStart));
 	clReleaseCommandQueue(Queue);
 	clReleaseContext(Context);
 	return 0;
