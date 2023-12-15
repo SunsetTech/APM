@@ -292,7 +292,7 @@ void Test_BlockFlood(cl_context Context, cl_device_id Device, cl_command_queue Q
 	
 	cl_uint BlockSize = 64;
 	cl_uint Iterations = (44100)/BlockSize;
-	cl_uint BufferSize = 1024*1024;
+	cl_uint BufferSize = 512*512;
 	cl_uint* Buffer = new cl_uint[BufferSize];
 	std::memset(Buffer, 0, BufferSize*sizeof(cl_uint));
 	cl_mem BufferCL = clCreateBuffer(Context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, sizeof(cl_uint) * BufferSize, Buffer, &Err);
@@ -350,7 +350,7 @@ void Test_DeviceEnqueue(cl_context Context, cl_device_id Device, cl_command_queu
 	
 	cl_uint BlockSize = 64;
 	cl_uint Iterations = (44100)/BlockSize;
-	cl_uint BufferSize = 1024*1024;
+	cl_uint BufferSize = 512*512;
 	cl_uint* Buffer = new cl_uint[BufferSize];
 	std::memset(Buffer, 0, BufferSize*sizeof(cl_uint));
 	cl_mem BufferCL = clCreateBuffer(Context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, sizeof(cl_uint) * BufferSize, Buffer, &Err);
@@ -432,8 +432,12 @@ int main() {
 	cl_command_queue DeviceQueue = clCreateCommandQueue(Context, Device, CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE | CL_QUEUE_ON_DEVICE | CL_QUEUE_ON_DEVICE_DEFAULT, nullptr);
 	
 	const char* TestNames = {"Device Enqueue"};
+	long long DEStart = Utils::Time::Nanoseconds();
 	Test_DeviceEnqueue(Context, Device, Queue);
+	long long BFStart = Utils::Time::Nanoseconds();
 	Test_BlockFlood(Context, Device, Queue);
+	long long BFEnd = Utils::Time::Nanoseconds();
+	printf("BlockFlood is %lldx faster\n", (BFStart - DEStart) / (BFEnd - BFStart));
 	clReleaseCommandQueue(Queue);
 	clReleaseContext(Context);
 	return 0;
