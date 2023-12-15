@@ -13,13 +13,14 @@ __kernel void Test_DeviceEnqueue(
 	clk_event_t StartEvent = create_user_event();
 	set_user_event_status(StartEvent, CL_COMPLETE);
 	clk_event_t ExecutionEvent;
+	void (^IncrementBlock)(void) = ^{Test_IncrementLocation(Buffer);};
 	for (unsigned int Iteration = 0; Iteration < Iterations; Iteration++) {
 		enqueue_kernel(
 			get_default_queue(),
 			CLK_ENQUEUE_FLAGS_NO_WAIT,
 			WorkRange,
 			1, &StartEvent, &ExecutionEvent,
-			^{Test_IncrementLocation(Buffer);}
+			IncrementBlock
 		); release_event(StartEvent);
 		StartEvent = ExecutionEvent;
 	}

@@ -10,6 +10,8 @@ namespace APM {
 		CLUtils::PrintAndHaltIfError("Creating context", Err);
 		this->Queue = clCreateCommandQueue(this->Context, Device, CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE, &Err);
 		CLUtils::PrintAndHaltIfError("Creating command queue", Err);
+		clCreateCommandQueue(this->Context, Device, CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE | CL_QUEUE_ON_DEVICE | CL_QUEUE_DEVICE_DEFAULT, &Err);
+		CLUtils::PrintAndHaltIfError("Creating default device queue", Err);
 	}
 	
 	ExecutionBin::~ExecutionBin() {
