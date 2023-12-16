@@ -109,12 +109,12 @@ int main() {
 	cl_uint ImpulsePos[] = {64,64};
 	TestStructure.SpaceBuffer[TestStructure.MapIndex(ImpulsePos)] = 1.0f;
 	
-	/*cl_uint SpringAttachPos[] = {1,1};
+	cl_uint SpringAttachPos[] = {1,1};
 	TestStructure.Inputs.push_back(
 		(APM::Scene::Object::WaveStructure::Plug) {
 			.Position = SpringAttachPos,
 		}
-	);*/
+	);
 	
 	cl_uint WaveOutputPosA[] = {7,8};
 	TestStructure.Outputs.push_back(

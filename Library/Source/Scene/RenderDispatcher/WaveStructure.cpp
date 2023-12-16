@@ -87,7 +87,7 @@ namespace APM::Scene::RenderDispatcher {
 		this->OutputBuffers = new Wave_PrecisionType[OutputBuffersLength];
 		printf("Allocated %lu bytes for OutputBuffers at %p\n", sizeof(Wave_PrecisionType)*OutputBuffersLength, this->OutputBuffers);
 		std::memset(this->OutputBuffers, 0, sizeof(Wave_PrecisionType) * OutputBuffersLength);
-		this->OutputBuffersCL = clCreateBuffer(this->Context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, sizeof(Wave_PrecisionType) * OutputBuffersLength, this->OutputBuffers, &Err);
+		this->OutputBuffersCL = clCreateBuffer(this->Context, CL_MEM_WRITE_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(Wave_PrecisionType) * OutputBuffersLength, this->OutputBuffers, &Err);
 		CLUtils::PrintAndHaltIfError("Creating OutputBuffersCL", Err);
 	}
 	
