@@ -34,19 +34,19 @@ namespace APM {
 		this->CheckForWork = true;
 		this->CheckForWork.notify_one();
 	}
-	void Engine::ProcessBlock(std::vector<Scene::RenderDispatcher::Base::Task *> Tasks, std::vector<Scene::Description::Connection> Connections, std::vector<Output> Outputs, cl_uint BlockIteration, size_t BlockSize, float TimeDelta) {
-		cl_uint StartIteration = BlockIteration*BlockSize;
-		cl_uint StartTimestep = (StartIteration+1)%2;
-		
+	
+	void Engine::ProcessBlock(std::vector<Scene::RenderDispatcher::Base::Task *> Tasks, std::vector<Scene::Description::Connection> Connections, std::vector<Output> Outputs, cl_uint StartIteration, size_t BlockSize, float TimeDelta) {
 		cl_event* ReadyEvents = new cl_event[Tasks.size()];
 		for (size_t TaskIndex = 0; TaskIndex < Tasks.size(); TaskIndex++) {
 			Scene::RenderDispatcher::Base::Task* CurrentTask = Tasks[TaskIndex];
 			cl_event ExecutionEvent, FlushEvent;
-			CurrentTask->EnqueueFlushMemory(BlockSize,            0, nullptr,         &FlushEvent          );
-			CurrentTask->EnqueueExecution  (BlockSize, TimeDelta, 1, &FlushEvent,     &ExecutionEvent      );
-			CurrentTask->EnqueueReadyMemory(BlockSize,            1, &ExecutionEvent, ReadyEvents+TaskIndex);
-			clReleaseEvent(FlushEvent    );
-			clReleaseEvent(ExecutionEvent);
+			CurrentTask->EnqueueFlushMemory(BlockSize, 0, nullptr, &FlushEvent);
+			CurrentTask->EnqueueExecution(StartIteration, BlockSize, TimeDelta, 1, &FlushEvent, &ExecutionEvent);
+			cl_int Err = clReleaseEvent(FlushEvent);
+			CLUtils::PrintAndHaltIfError("Releasing FlushEvent", Err);
+			CurrentTask->EnqueueReadyMemory(BlockSize, 1, &ExecutionEvent, ReadyEvents+TaskIndex);
+			Err = clReleaseEvent(ExecutionEvent);
+			CLUtils::PrintAndHaltIfError("Releasing ExecutionEvent", Err);
 		}
 		
 		for (size_t EventIndex = 0; EventIndex < Tasks.size(); EventIndex++) {
@@ -61,14 +61,16 @@ namespace APM {
 			Scene::RenderDispatcher::Base::Task* Src = Tasks[Connection.SourceObjectID];
 			float Value = Src->GetSourceValue(Connection.SourcePlugID, Timestep);
 			Dest->SetSinkValue(Connection.SinkPlugID, Timestep, Value);
-		}
+		}*/
 		
 		//Process outputs
 		for (size_t OutputIndex = 0; OutputIndex < Outputs.size(); OutputIndex++) {
-			Output CurrentOutput = Outputs[OutputIndex];
-			float Value = Tasks[CurrentOutput.Object]->GetSourceValue(CurrentOutput.Plug, Timestep);
-			CurrentOutput.Buffer[Iteration] = Value;
-		}*/
+			for (cl_uint SubIteration = 0; SubIteration < BlockSize; SubIteration++) {
+				Output CurrentOutput = Outputs[OutputIndex];
+				float Value = Tasks[CurrentOutput.Object]->GetSourceValue(CurrentOutput.Plug, SubIteration);
+				CurrentOutput.Buffer[StartIteration+SubIteration] = Value;
+			}
+		}
 		
 		delete[] ReadyEvents;
 	}
@@ -108,26 +110,24 @@ namespace APM {
 					
 					for (auto DispatcherIterator = Bin->Dispatchers.begin(); DispatcherIterator != Bin->Dispatchers.end(); DispatcherIterator++) {
 						if ((*DispatcherIterator)->Handles(*ObjectIterator)) {
-							Tasks.push_back((*DispatcherIterator)->CreateTask(*ObjectIterator));
+							Tasks.push_back((*DispatcherIterator)->CreateTask(*ObjectIterator, CurrentJob.BlockSize));
 							continue;
 						}
 					}
 				}
 				
 				size_t BlockIterations = CurrentJob.Iterations / CurrentJob.BlockSize;
-				size_t Remainder = CurrentJob.Iterations * CurrentJob.BlockSize;
+				size_t Remainder = CurrentJob.Iterations % CurrentJob.BlockSize;
 				for (size_t BlockIteration = 0; BlockIteration < BlockIterations; BlockIteration++) {
-					Engine::ProcessBlock(Tasks, CurrentJob.Scene.Connections, CurrentJob.Outputs, BlockIteration, CurrentJob.BlockSize, CurrentJob.TimeDelta);
+					Engine::ProcessBlock(Tasks, CurrentJob.Scene.Connections, CurrentJob.Outputs, BlockIteration*CurrentJob.BlockSize, CurrentJob.BlockSize, CurrentJob.TimeDelta);
 					CurrentJob.ProgressTracker->store(BlockIteration*CurrentJob.BlockSize);
 					CurrentJob.ProgressTracker->notify_all();
 				}
-				
 				if (Remainder > 0) {
-					Engine::ProcessBlock(Tasks, CurrentJob.Scene.Connections, CurrentJob.Outputs, BlockIterations, Remainder, CurrentJob.TimeDelta);
+					Engine::ProcessBlock(Tasks, CurrentJob.Scene.Connections, CurrentJob.Outputs, BlockIterations*CurrentJob.BlockSize, Remainder, CurrentJob.TimeDelta);
 					CurrentJob.ProgressTracker->store(CurrentJob.Iterations);
 					CurrentJob.ProgressTracker->notify_all();
 				};
-				
 				CurrentJob.CompletionSignal->store(true);
 				CurrentJob.CompletionSignal->notify_all();
 			}

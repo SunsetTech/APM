@@ -1,14 +1,13 @@
 #include "Base.hpp"
 #include <cstdio>
 namespace APM::Scene::RenderDispatcher {
-	Base::Task::Task(cl_context Context, cl_command_queue Queue, cl_kernel Kernel, size_t MaxBlockSize) {
+	Base::Task::Task(cl_context Context, cl_command_queue Queue, size_t MaxBlockSize) {
+		this->MaxBlockSize = MaxBlockSize;
 		this->Context = Context; clRetainContext(Context);
 		this->Queue = Queue; clRetainCommandQueue(Queue);
-		this->Kernel = clCloneKernel(Kernel, nullptr);
 	}
 	
 	Base::Task::~Task() {
-		clReleaseKernel(this->Kernel);
 		clReleaseCommandQueue(this->Queue);
 		clReleaseContext(this->Context);
 	}

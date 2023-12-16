@@ -8,10 +8,18 @@ namespace APM {
 		this->Device = Device; clRetainDevice(Device);
 		this->Context = clCreateContext(NULL, 1, &Device, NULL, NULL, &Err);
 		CLUtils::PrintAndHaltIfError("Creating context", Err);
-		this->Queue = clCreateCommandQueue(this->Context, Device, CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE, &Err);
+		cl_queue_properties QueueProperties[] = {
+			CL_QUEUE_PROPERTIES, CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE,
+			0
+		};
+		this->Queue = clCreateCommandQueueWithProperties(this->Context, Device, QueueProperties, &Err);
 		CLUtils::PrintAndHaltIfError("Creating command queue", Err);
-		clCreateCommandQueue(this->Context, Device, CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE | CL_QUEUE_ON_DEVICE | CL_QUEUE_DEVICE_DEFAULT, &Err);
-		CLUtils::PrintAndHaltIfError("Creating default device queue", Err);
+		/*cl_queue_properties DefaultDeviceQueueProperties[] = {
+			CL_QUEUE_PROPERTIES, CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE | CL_QUEUE_ON_DEVICE | CL_QUEUE_ON_DEVICE_DEFAULT,
+			0
+		};
+		clCreateCommandQueueWithProperties(this->Context, Device, DefaultDeviceQueueProperties, &Err);
+		CLUtils::PrintAndHaltIfError("Creating default device queue", Err);*/
 	}
 	
 	ExecutionBin::~ExecutionBin() {

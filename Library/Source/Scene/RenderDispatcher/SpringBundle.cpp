@@ -9,7 +9,7 @@
 #include "../Object/SpringBundle.hpp"
 #include "../../Math.hpp"
 
-namespace APM::Scene::RenderDispatcher {
+/*namespace APM::Scene::RenderDispatcher {
 	void SpringBundle::SBTask::SetupSpacetimeBuffer() {
 		int SpaceCursor[] = {0, 0};
 		int SpacetimeCursor[] = {0, 0, 0};
@@ -155,4 +155,4 @@ namespace APM::Scene::RenderDispatcher {
 		clReleaseKernel(this->Kernel);
 		clReleaseProgram(this->Program);
 	}
-}
+}*/

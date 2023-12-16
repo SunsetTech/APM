@@ -35,9 +35,9 @@ __kernel __attribute__((vec_type_hint(Wave_PrecisionType))) void Wave_1Dto3D_Lar
 
 __kernel void Wave_1Dto3D_Scatter(
 	const          unsigned int                 SpatialDimensions,
-	const          unsigned int                 BlockSize,
-	const          unsigned int                 SubIteration,
-	const          unsigned int                 Timestep, //Timestep to write inputs to
+	const          unsigned int                 MaxBlockSize,
+	const          unsigned int                 SourceIndex,
+	const          unsigned int                 TargetIndex, //Timestep to write inputs to
 	const          unsigned int                 InputCount,
 	const __global unsigned int      * restrict InputPositions,
 	const __global Wave_PrecisionType* restrict InputBuffers,
@@ -47,9 +47,9 @@ __kernel void Wave_1Dto3D_Scatter(
 	const unsigned int InputIndex = get_global_id(0);
 	const unsigned int InputPositionsBounds[] = {InputCount, SpatialDimensions};
 	               int InputPositionsCursor[] = {InputIndex, 0};
-	const unsigned int InputBuffersBounds[] = {InputCount, BlockSize};
-	const          int InputBuffersCursor[] = {InputCount, SubIteration};
-	               int SpacetimeCursor[] = {Timestep, 0, 0, 0};
+	const unsigned int InputBuffersBounds[] = {InputCount, MaxBlockSize};
+	const          int InputBuffersCursor[] = {InputCount, SourceIndex};
+	               int SpacetimeCursor[] = {TargetIndex, 0, 0, 0};
 	
 	for (unsigned int Dimension = 0; Dimension < SpatialDimensions; Dimension++) {
 		InputPositionsCursor[1] = Dimension;
@@ -60,22 +60,22 @@ __kernel void Wave_1Dto3D_Scatter(
 }
 
 __kernel void Wave_1Dto3D_Gather(
-	const          unsigned int                 SpatialDimensions,
-	const          unsigned int                 BlockSize,
-	const          unsigned int                 SubIteration,
-	const          unsigned int                 Timestep,
-	const          unsigned int                 OutputCount,
-	const __global unsigned int      * restrict OutputPositions,
-	      __global Wave_PrecisionType* restrict OutputBuffers,
-	const __global unsigned int      * restrict SpacetimeBounds,
-	const __global Wave_PrecisionType* restrict Spacetime
+	const          unsigned int                 SpatialDimensions, //0
+	const          unsigned int                 MaxBlockSize, //1
+	const          unsigned int                 TargetIndex, //2
+	const          unsigned int                 SourceIndex, //3
+	const          unsigned int                 OutputCount, //4
+	const __global unsigned int      * restrict OutputPositions, //5
+	      __global Wave_PrecisionType* restrict OutputBuffers, //6
+	const __global unsigned int      * restrict SpacetimeBounds, //7
+	const __global Wave_PrecisionType* restrict Spacetime //8
 ) {
 	const unsigned int OutputIndex             =  get_global_id(0)               ;
 	const unsigned int OutputPositionsBounds[] = {OutputCount, SpatialDimensions};
 	               int OutputPositionsCursor[] = {OutputIndex, 0                };
-	const unsigned int OutputBuffersBounds  [] = {OutputCount, BlockSize        };
-	const          int OutputBuffersCursor  [] = {OutputCount, SubIteration     };
-	               int SpacetimeCursor      [] = {Timestep,    0,           0, 0};
+	const unsigned int OutputBuffersBounds  [] = {OutputCount, MaxBlockSize     };
+	const          int OutputBuffersCursor  [] = {OutputCount    , TargetIndex};
+	               int SpacetimeCursor      [] = {SourceIndex, 0,         0, 0};
 	
 	for (unsigned int Dimension = 0; Dimension < SpatialDimensions; Dimension++) {
 		OutputPositionsCursor[1] = Dimension;
@@ -83,96 +83,4 @@ __kernel void Wave_1Dto3D_Gather(
 	}
 	
 	OutputBuffers[MapIndex(2, OutputBuffersCursor, OutputBuffersBounds)] = Spacetime[MapIndex(SpatialDimensions+1, SpacetimeCursor, SpacetimeBounds)];
-}
-
-__kernel void Wave_1Dto3D_Chunked(
-	const          unsigned int                 SpatialDimensions,
-	const          unsigned int                 StartIteration,
-	const          unsigned int                 BlockSize,
-	const          unsigned int                 InputCount,
-	const          unsigned int                 OutputCount,
-	const          Wave_PrecisionType           TimeDelta,
-	const          Wave_PrecisionType           SpaceDelta,
-	const __global unsigned int      * restrict SpacetimeBounds,
-	const __global unsigned int      * restrict InputPositions,
-	const __global unsigned int      * restrict OutputPositions,
-	const __global Wave_PrecisionType* restrict InputBuffers,
-	const __global Wave_PrecisionType* restrict WaveVelocity,
-	const __global Wave_PrecisionType* restrict TransferEfficiency,
-	      __global Wave_PrecisionType* restrict Spacetime,
-	      __global Wave_PrecisionType* restrict OutputBuffers
-) {
-	const ndrange_t ScatterRange = ndrange_1D(InputCount);
-	const ndrange_t GatherRange = ndrange_1D(OutputCount);
-	ndrange_t WorkRange;
-	WorkRange.workDimension = SpatialDimensions;
-	for (unsigned int Dimension = 0; Dimension < SpatialDimensions; Dimension++) {
-		WorkRange.globalWorkSize[Dimension] = SpacetimeBounds[Dimension+1];
-	}
-	
-	clk_event_t StartEvent = create_user_event(); 
-	set_user_event_status(StartEvent, CL_COMPLETE);
-	clk_event_t ScatterEvent, ExecutionEvent, GatherEvent;
-	queue_t Queue = get_default_queue();
-	for (unsigned int SubIteration = 0; SubIteration < BlockSize; SubIteration++) {
-		unsigned int Iteration = StartIteration+SubIteration;
-		unsigned int PreviousTimestep = Iteration%2;
-		unsigned int CurrentTimestep = (Iteration+1)%2;
-		enqueue_kernel( //TODO interleave with last iterations gather operation
-			Queue,
-			CLK_ENQUEUE_FLAGS_NO_WAIT,
-			ScatterRange,
-			1, &StartEvent, &ScatterEvent,
-			^{
-				Wave_1Dto3D_Scatter(
-					SpatialDimensions,
-					BlockSize,
-					SubIteration,
-					PreviousTimestep,
-					InputCount,
-					InputPositions,
-					InputBuffers,
-					SpacetimeBounds,
-					Spacetime
-				);
-			}
-		); release_event(StartEvent);
-		enqueue_kernel(
-			Queue,
-			CLK_ENQUEUE_FLAGS_NO_WAIT,
-			WorkRange,
-			1, &ScatterEvent, &ExecutionEvent,
-			^{
-				Wave_1Dto3D_Large(
-					SpatialDimensions,
-					CurrentTimestep,
-					TimeDelta, SpaceDelta,
-					SpacetimeBounds,
-					WaveVelocity, TransferEfficiency,
-					Spacetime
-				);
-			}
-		); release_event(ScatterEvent);
-		enqueue_kernel(
-			Queue,
-			CLK_ENQUEUE_FLAGS_NO_WAIT,
-			GatherRange,
-			1, &ExecutionEvent, &GatherEvent,
-			^{
-				Wave_1Dto3D_Gather(
-					SpatialDimensions,
-					BlockSize,
-					SubIteration,
-					CurrentTimestep,
-					OutputCount,
-					OutputPositions,
-					OutputBuffers,
-					SpacetimeBounds,
-					Spacetime
-				);
-			}
-		); release_event(ExecutionEvent);
-		StartEvent = GatherEvent;
-	}
-	release_event(StartEvent);
 }

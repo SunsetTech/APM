@@ -52,7 +52,7 @@ int main() {
 			free(DeviceName);
 			
 			APM::ExecutionBin* DeviceBin = new APM::ExecutionBin(Devices[DeviceIndex]);
-			DeviceBin->AttachDispatcher<APM::Scene::RenderDispatcher::SpringBundle>();
+			//DeviceBin->AttachDispatcher<APM::Scene::RenderDispatcher::SpringBundle>();
 			DeviceBin->AttachDispatcher<APM::Scene::RenderDispatcher::WaveStructure>();
 			ExecutionBins.push_back(DeviceBin);
 		}
@@ -60,7 +60,7 @@ int main() {
 	//TODO benchmark selected devices for initial performance ordering
 	printf("Setting up scene...\n");
 	APM::Scene::Description TestScene;
-	APM::Scene::Object::SpringBundle TestBundle(1,5);
+	/*APM::Scene::Object::SpringBundle TestBundle(1,5);
 	for (unsigned int FiberIndex = 0; FiberIndex < TestBundle.FiberCount; FiberIndex++) {
 		for (unsigned int NodeIndex = 0; NodeIndex < TestBundle.FiberLength; NodeIndex++) {
 			size_t BufferIndex = TestBundle.MapIndex(FiberIndex, NodeIndex);
@@ -80,7 +80,7 @@ int main() {
 	}
 	TestBundle.SpaceBuffer[TestBundle.MapIndex(0,1)].Position -= 0.99f;
 	TestBundle.Outputs.push_back({0,TestBundle.FiberLength-2,(float)TestBundle.FiberLength-2.0f});
-	TestScene.Objects.push_back(&TestBundle);
+	TestScene.Objects.push_back(&TestBundle);*/
 	
 	cl_uint TestStructureBounds[] = {64, 64};
 	APM::Scene::Object::WaveStructure TestStructure(2, TestStructureBounds);
@@ -107,12 +107,12 @@ int main() {
 		}
 	}
 	
-	cl_uint SpringAttachPos[] = {1,1};
+	/*cl_uint SpringAttachPos[] = {1,1};
 	TestStructure.Inputs.push_back(
 		(APM::Scene::Object::WaveStructure::Plug) {
 			.Position = SpringAttachPos,
 		}
-	);
+	);*/
 	
 	cl_uint WaveOutputPosA[] = {7,8};
 	TestStructure.Outputs.push_back(
@@ -130,10 +130,10 @@ int main() {
 	
 	TestScene.Objects.push_back(&TestStructure);
 	
-	TestScene.Connections.push_back((APM::Scene::Description::Connection){
+	/*TestScene.Connections.push_back((APM::Scene::Description::Connection){
 		.SinkObjectID = 1, .SinkPlugID = 0,
 		.SourceObjectID = 0, .SourcePlugID = 0,
-	});
+	});*/
 	
 	printf("Creating engine...\n");
 	APM::Engine TestEngine = APM::Engine(ExecutionBins);
@@ -149,21 +149,21 @@ int main() {
 	cl_uint LengthInSamples = (float)SampleRate*LengthInSecs;
 	float* OutputBufferL = new float[LengthInSamples];
 	float* OutputBufferR = new float[LengthInSamples];
-	float* DebugBuffer = new float[LengthInSamples];
+	//float* DebugBuffer = new float[LengthInSamples];
 	long long StartTime = Utils::Time::Milliseconds();
 	TestEngine.EnqueueJob(
-		TestScene, 1.0f/(float)SampleRate, LengthInSamples, 
+		TestScene, 1.0f/(float)SampleRate, LengthInSamples, 64, 
 		{
-			(APM::Engine::Output){
+			/*(APM::Engine::Output){
 				.Object = 0, .Plug = 0,
 				.Buffer = DebugBuffer
-			},
+			},*/
 			(APM::Engine::Output){
-				.Object = 1, .Plug = 0,
+				.Object = 0, .Plug = 0,
 				.Buffer = OutputBufferL
 			},
 			(APM::Engine::Output){
-				.Object = 1, .Plug = 1,
+				.Object = 0, .Plug = 1,
 				.Buffer = OutputBufferR
 			}
 		}, 
@@ -176,21 +176,21 @@ int main() {
 		LastProgress = ProgressTracker;
 		float ValueL = OutputBufferL[LastProgress];
 		float ValueR = OutputBufferR[LastProgress];
-		printf("Debug: %f\n", DebugBuffer[LastProgress]);
+		//printf("Debug: %f\n", DebugBuffer[LastProgress]);
 		printf("L: %f, R: %f\n", ValueL, ValueR);
-		unsigned int Percent = floorf(((float)LastProgress/(LengthInSamples/32-1.0f))*100.0f);
+		unsigned int Percent = floorf(((float)LastProgress/(LengthInSamples-1.0f))*100.0f);
 		LastPercent = Percent;
 		printf("%i%% complete..\n", LastPercent);
 	}
-	printf("Took %llds\n", (Utils::Time::Milliseconds() - StartTime)/1000LL);
+	printf("Took %.2fs\n", (double)(Utils::Time::Milliseconds() - StartTime)/1000.0);
 	printf("Writing output .wav files\n");
 	float* StereoBuffer[] = {OutputBufferL, OutputBufferR};
 	Utils::WriteWAV_File("Output.wav", SampleRate, 2, LengthInSamples, StereoBuffer);
-	float* MonoBuffer[] = {DebugBuffer};
-	Utils::WriteWAV_File("Output_Debug.wav", SampleRate, 1, LengthInSamples, MonoBuffer);
+	//float* MonoBuffer[] = {DebugBuffer};
+	//Utils::WriteWAV_File("Output_Debug.wav", SampleRate, 1, LengthInSamples, MonoBuffer);
 	delete[] OutputBufferL;
 	delete[] OutputBufferR;
-	delete[] DebugBuffer;
+	//delete[] DebugBuffer;
 	printf("Shutting down job processing thread...\n");
 	TestEngine.StopJobsThread();
 	printf("Deleting execution bins...\n");

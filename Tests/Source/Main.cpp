@@ -489,9 +489,9 @@ int main() {
 	long long BFStart = Utils::Time::Milliseconds();
 	Test_BlockFlood(Context, Device, Queue);
 	long long BFEnd = Utils::Time::Milliseconds();
-	printf("EnqueueAndWait took %fs\nDeviceEnqueue took %fs\nBlockFlood took %fs\n", (double)(DEStart - EAWStart)/1000.0, (double)(BFStart - DEStart)/1000.0, (double)(BFEnd - BFStart)/1000.0);
-	printf("BlockFlood is %fx faster than DeviceEnqueue\n", (double)(BFStart - DEStart) / (double)(BFEnd - BFStart));
-	printf("BlockFlood is %fx faster than EnqueueAndWait\n", (double)(DEStart - EAWStart) / (double)(BFEnd - BFStart));
+	printf("EnqueueAndWait took %.2fs\nDeviceEnqueue took %.2fs\nBlockFlood took %.2fs\n", (double)(DEStart - EAWStart)/1000.0, (double)(BFStart - DEStart)/1000.0, (double)(BFEnd - BFStart)/1000.0);
+	printf("BlockFlood is %.2fx faster than DeviceEnqueue\n", (double)(BFStart - DEStart) / (double)(BFEnd - BFStart));
+	printf("BlockFlood is %.2fx faster than EnqueueAndWait\n", (double)(DEStart - EAWStart) / (double)(BFEnd - BFStart));
 	clReleaseCommandQueue(Queue);
 	clReleaseContext(Context);
 	return 0;

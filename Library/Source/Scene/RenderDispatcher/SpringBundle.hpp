@@ -2,7 +2,7 @@
 #include "Base.hpp"
 #include "../Object/SpringBundle.hpp"
 
-namespace APM::Scene::RenderDispatcher {
+/*namespace APM::Scene::RenderDispatcher {
 	class SpringBundle: public Base {
 		private:
 			class SBTask: public Base::Task {
@@ -32,4 +32,4 @@ namespace APM::Scene::RenderDispatcher {
 			Base::Task* CreateTask(Object::Base* Object) override;
 			~SpringBundle();
 	};
-}
+}*/
