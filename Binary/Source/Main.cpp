@@ -82,7 +82,7 @@ int main() {
 	TestBundle.Outputs.push_back({0,TestBundle.FiberLength-2,(float)TestBundle.FiberLength-2.0f});
 	TestScene.Objects.push_back(&TestBundle);*/
 	
-	cl_uint TestStructureBounds[] = {64, 64};
+	cl_uint TestStructureBounds[] = {256, 256};
 	APM::Scene::Object::WaveStructure TestStructure(2, TestStructureBounds);
 	cl_uint Cursor[2];
 	for (cl_uint X = 0; X < TestStructureBounds[0]; X++) {
@@ -106,6 +106,8 @@ int main() {
 			//}
 		}
 	}
+	cl_uint ImpulsePos[] = {64,64};
+	TestStructure.SpaceBuffer[TestStructure.MapIndex(ImpulsePos)] = 1.0f;
 	
 	/*cl_uint SpringAttachPos[] = {1,1};
 	TestStructure.Inputs.push_back(

@@ -68,6 +68,7 @@ namespace APM {
 			for (cl_uint SubIteration = 0; SubIteration < BlockSize; SubIteration++) {
 				Output CurrentOutput = Outputs[OutputIndex];
 				float Value = Tasks[CurrentOutput.Object]->GetSourceValue(CurrentOutput.Plug, SubIteration);
+				printf("Got %f for output %lu (obj %lu)\n", Value, CurrentOutput.Plug, CurrentOutput.Object);
 				CurrentOutput.Buffer[StartIteration+SubIteration] = Value;
 			}
 		}

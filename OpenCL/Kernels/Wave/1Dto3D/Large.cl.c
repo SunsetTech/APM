@@ -48,7 +48,7 @@ __kernel void Wave_1Dto3D_Scatter(
 	const unsigned int InputPositionsBounds[] = {InputCount, SpatialDimensions};
 	               int InputPositionsCursor[] = {InputIndex, 0};
 	const unsigned int InputBuffersBounds[] = {InputCount, MaxBlockSize};
-	const          int InputBuffersCursor[] = {InputCount, SourceIndex};
+	const          int InputBuffersCursor[] = {InputIndex, SourceIndex};
 	               int SpacetimeCursor[] = {TargetIndex, 0, 0, 0};
 	
 	for (unsigned int Dimension = 0; Dimension < SpatialDimensions; Dimension++) {
@@ -74,8 +74,8 @@ __kernel void Wave_1Dto3D_Gather(
 	const unsigned int OutputPositionsBounds[] = {OutputCount, SpatialDimensions};
 	               int OutputPositionsCursor[] = {OutputIndex, 0                };
 	const unsigned int OutputBuffersBounds  [] = {OutputCount, MaxBlockSize     };
-	const          int OutputBuffersCursor  [] = {OutputCount    , TargetIndex};
-	               int SpacetimeCursor      [] = {SourceIndex, 0,         0, 0};
+	const          int OutputBuffersCursor  [] = {OutputIndex, TargetIndex      };
+	               int SpacetimeCursor      [] = {SourceIndex, 0          ,0 ,0 };
 	
 	for (unsigned int Dimension = 0; Dimension < SpatialDimensions; Dimension++) {
 		OutputPositionsCursor[1] = Dimension;

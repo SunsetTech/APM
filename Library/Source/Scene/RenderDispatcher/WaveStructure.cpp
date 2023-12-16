@@ -276,14 +276,14 @@ namespace APM::Scene::RenderDispatcher {
 		Cursor[0] = Timestep;
 		for (unsigned int Dimension = 0; Dimension < this->Structure->Dimensions; Dimension++) {
 			Cursor[Dimension+1] = CurrentPlug.Position[Dimension];
-		}
+		}*/
 		
-		float Value = this->SpacetimeBuffer[Math::MapIndex(this->Structure->Dimensions+1, Cursor, this->SpacetimeBounds)];
+		//float Value = this->SpacetimeBuffer[Math::MapIndex(this->Structure->Dimensions+1, Cursor, this->SpacetimeBounds)];
 		
-		delete[] Cursor;
+		//delete[] Cursor;
+		float Value = this->OutputBuffers[(ID*this->MaxBlockSize)+Timestep];
 		
-		return Value;*/
-		return 0.0;
+		return Value;
 	}
 	
 	void WaveStructure::Task::SetSinkValue(size_t ID, size_t Timestep, float Value) { //TODO
