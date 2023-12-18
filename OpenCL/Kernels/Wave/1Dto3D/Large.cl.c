@@ -11,9 +11,6 @@ __kernel __attribute__((vec_type_hint(Wave_PrecisionType))) void Wave_1Dto3D_Lar
 	const __global Wave_PrecisionType* restrict TransferEfficiency,
 	      __global Wave_PrecisionType* restrict Spacetime
 ) {
-	local unsigned int ParameterIndexMultipliers[3], SpacetimeIndexMultipliers[4];
-	ComputeMultipliers(SpatialDimensions,SpacetimeBounds+1,ParameterIndexMultipliers);
-	ComputeMultipliers(SpatialDimensions+1,SpacetimeBounds,SpacetimeIndexMultipliers);
 	const Wave_PrecisionType SpacetimeDelta = pow(TimeDelta/SpaceDelta,2.0f); //TODO make argument
 	
 	int CellPosition[4] = {
@@ -23,17 +20,29 @@ __kernel __attribute__((vec_type_hint(Wave_PrecisionType))) void Wave_1Dto3D_Lar
 		get_global_id(2),
 	};
 	
-	const Wave_PrecisionType Next = Wave_Update(
-		SpatialDimensions,
-		WaveVelocity,
-		TransferEfficiency,
-		Spacetime,
-		CellPosition, SpacetimeBounds, ParameterIndexMultipliers, SpacetimeIndexMultipliers,
-		SpacetimeDelta
-	);
+	Wave_PrecisionType Next;
+	if (SpatialDimensions == 2) {
+		Next = Wave_Update2D(
+			WaveVelocity,
+			TransferEfficiency,
+			Spacetime,
+			CellPosition,
+			SpacetimeBounds,
+			SpacetimeDelta
+		);
+	} else {
+		Next = Wave_UpdateND(
+			SpatialDimensions,
+			WaveVelocity,
+			TransferEfficiency,
+			Spacetime,
+			CellPosition, SpacetimeBounds,
+			SpacetimeDelta
+		);
+	}
 	
 	CellPosition[0]++;
-	Spacetime[MapIndexSlow(SpatialDimensions+1, CellPosition, SpacetimeBounds)] = Next;
+	Spacetime[MapIndexND(SpatialDimensions+1, CellPosition, SpacetimeBounds)] = Next;
 }
 
 __kernel void Wave_1Dto3D_Scatter(
@@ -56,10 +65,10 @@ __kernel void Wave_1Dto3D_Scatter(
 	
 	for (unsigned int Dimension = 0; Dimension < SpatialDimensions; Dimension++) {
 		InputPositionsCursor[1] = Dimension;
-		SpacetimeCursor[Dimension+1] = InputPositions[MapIndexSlow(2, InputPositionsCursor, InputPositionsBounds)];
+		SpacetimeCursor[Dimension+1] = InputPositions[MapIndexND(2, InputPositionsCursor, InputPositionsBounds)];
 	}
 	
-	Spacetime[MapIndexSlow(SpatialDimensions+1, SpacetimeCursor, SpacetimeBounds)] = InputBuffers[MapIndexSlow(2, InputBuffersCursor, InputBuffersBounds)];
+	Spacetime[MapIndexND(SpatialDimensions+1, SpacetimeCursor, SpacetimeBounds)] = InputBuffers[MapIndexND(2, InputBuffersCursor, InputBuffersBounds)];
 }
 
 __kernel void Wave_1Dto3D_Gather(
@@ -82,8 +91,8 @@ __kernel void Wave_1Dto3D_Gather(
 	
 	for (unsigned int Dimension = 0; Dimension < SpatialDimensions; Dimension++) {
 		OutputPositionsCursor[1] = Dimension;
-		SpacetimeCursor[Dimension+1] = OutputPositions[MapIndexSlow(2, OutputPositionsCursor, OutputPositionsBounds)];
+		SpacetimeCursor[Dimension+1] = OutputPositions[MapIndexND(2, OutputPositionsCursor, OutputPositionsBounds)];
 	}
 	
-	OutputBuffers[MapIndexSlow(2, OutputBuffersCursor, OutputBuffersBounds)] = Spacetime[MapIndexSlow(SpatialDimensions+1, SpacetimeCursor, SpacetimeBounds)];
+	OutputBuffers[MapIndexND(2, OutputBuffersCursor, OutputBuffersBounds)] = Spacetime[MapIndexND(SpatialDimensions+1, SpacetimeCursor, SpacetimeBounds)];
 }

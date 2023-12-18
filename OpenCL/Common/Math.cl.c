@@ -19,16 +19,7 @@ void ComputeMultipliers(unsigned int Dimensions, const unsigned int * restrict B
 	}
 }
 
-unsigned int MapIndex(unsigned int Dimensions, const int* restrict Position, const unsigned int* restrict Size, local const unsigned int* restrict Multipliers) {
-	unsigned int Result = 0;
-	for (int Dimension = Dimensions-1; Dimension >= 0; Dimension--) {
-		Result = mad24(Wrap(Position[Dimension], Size[Dimension]), Multipliers[Dimension], Result);
-	}
-	
-	return Result;
-}
-
-unsigned int MapIndexSlow(unsigned int Dimensions, const int* restrict Position, const unsigned int* restrict Bounds) {
+unsigned int MapIndexND(unsigned int Dimensions, const int* restrict Position, const unsigned int* restrict Bounds) {
 	unsigned int Result = 0;
 	unsigned int Multiplier = 1;
 	for (int Dimension = Dimensions-1; Dimension >= 0; Dimension--) {
@@ -37,4 +28,19 @@ unsigned int MapIndexSlow(unsigned int Dimensions, const int* restrict Position,
 	}
 	
 	return Result;
+}
+
+unsigned int MapIndex2D(
+	cl_int X, cl_uint MultiplierX,
+	cl_int Y
+) {
+	return X * MultiplierX + Y;
+}
+
+cl_uint MapIndex3D(
+	const cl_int X, const cl_uint MultiplierX,
+	const cl_int Y, const cl_uint MultiplierY,
+	const cl_int Z
+) {
+	return X * MultiplierX + Y * MultiplierY + Z;
 }

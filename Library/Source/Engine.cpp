@@ -125,7 +125,7 @@ namespace APM {
 				}
 				if (Remainder > 0) {
 					Engine::ProcessBlock(Tasks, CurrentJob.Scene.Connections, CurrentJob.Outputs, BlockIterations*CurrentJob.BlockSize, Remainder, CurrentJob.TimeDelta);
-					CurrentJob.ProgressTracker->store(CurrentJob.Iterations);
+					CurrentJob.ProgressTracker->store(CurrentJob.Iterations-1);
 					CurrentJob.ProgressTracker->notify_all();
 				};
 				CurrentJob.CompletionSignal->store(true);
