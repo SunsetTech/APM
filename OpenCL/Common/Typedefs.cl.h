@@ -5,5 +5,7 @@
 	typedef int cl_int;
 	typedef unsigned int cl_uint;
 	typedef bool cl_bool;
+	#define cl_local local
 #else
+	#define cl_local
 #endif

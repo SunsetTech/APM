@@ -12,6 +12,10 @@
 #include "Scene/RenderDispatcher/SpringBundle.hpp"
 #include "Scene/RenderDispatcher/WaveStructure.hpp"
 
+double distance(double x1, double y1, double x2, double y2) {
+    return sqrt(pow((x2 - x1), 2) + pow((y2 - y1), 2));
+}
+
 int main() {
 	srand((unsigned int)time(NULL));
 	
@@ -93,7 +97,10 @@ int main() {
 				//Cursor[2] = Z;
 				size_t Index = TestStructure.MapIndex(Cursor);
 				TestStructure.SpaceBuffer[Index] = 0.0f;
-				TestStructure.WaveVelocity[Index] = powf(1.0f, 2.0f);
+				float MaxDistance = distance(TestStructureBounds[0]/2.0, TestStructureBounds[1]/2.0, TestStructureBounds[0], TestStructureBounds[1]);
+				float Distance = distance(TestStructureBounds[0]/2.0, TestStructureBounds[1]/2.0, X, Y);
+				float Normalized = Distance/MaxDistance;
+				TestStructure.WaveVelocity[Index] = powf(sin(Normalized), 2.0f);
 				if (
 					   X == 0 || X == TestStructureBounds[0]-1
 					|| Y == 0 || Y == TestStructureBounds[1]-1
@@ -101,7 +108,7 @@ int main() {
 				) {
 					TestStructure.TransferEfficiency[Index] = 0.0;
 				} else {
-					TestStructure.TransferEfficiency[Index] = 0.9999f;
+					TestStructure.TransferEfficiency[Index] = 0.99995f;
 				}
 			//}
 		}
@@ -116,14 +123,14 @@ int main() {
 		}
 	);
 	
-	cl_uint WaveOutputPosA[] = {7,8};
+	cl_uint WaveOutputPosA[] = {64,8};
 	TestStructure.Outputs.push_back(
 		(APM::Scene::Object::WaveStructure::Plug) {
 			.Position = WaveOutputPosA,
 		}
 	);
 	
-	cl_uint WaveOutputPosB[] = {8,7};
+	cl_uint WaveOutputPosB[] = {8,64};
 	TestStructure.Outputs.push_back(
 		(APM::Scene::Object::WaveStructure::Plug) {
 			.Position = WaveOutputPosB,
@@ -181,8 +188,8 @@ int main() {
 		//printf("Debug: %f\n", DebugBuffer[LastProgress]);
 		printf("L: %f, R: %f\n", ValueL, ValueR);
 		unsigned int Percent = floorf(((float)LastProgress/(LengthInSamples-1.0f))*100.0f);
-		LastPercent = Percent;
-		printf("%i%% complete..\n", LastPercent);
+		printf("%i%% complete.\n", Percent);
+		printf("%.2fs elapsed.\n", (double)(Utils::Time::Milliseconds() - StartTime)/1000.0);
 	}
 	printf("Took %.2fs\n", (double)(Utils::Time::Milliseconds() - StartTime)/1000.0);
 	printf("Writing output .wav files\n");
