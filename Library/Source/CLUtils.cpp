@@ -15,6 +15,7 @@ namespace CLUtils {
 			if (Definitions[Index].Size > 0 && Definitions[Index].Value != nullptr) {
 				Err = clSetKernelArg(Kernel, Index, Definitions[Index].Size, Definitions[Index].Value);
 				if (Err != CL_SUCCESS) {
+					printf("Error setting %lu\n", Index);
 					return Err;
 				}
 			}

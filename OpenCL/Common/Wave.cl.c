@@ -35,7 +35,7 @@ Wave_PrecisionType Wave_UpdateND(
 	return Next;
 }
 
-Wave_PrecisionType Wave_Update2D( //Vaguely worth it on the 1650 and slower on the Fury
+Wave_PrecisionType Wave_Update2D(
 	const Wave_PrecisionType* WaveVelocity,
 	const Wave_PrecisionType* TransferEfficiency,
 	const Wave_PrecisionType* Spacetime,
@@ -49,8 +49,6 @@ Wave_PrecisionType Wave_Update2D( //Vaguely worth it on the 1650 and slower on t
 	const unsigned int MaxY,
 	const Wave_PrecisionType SpacetimeDelta
 ) {
-	
-	
 	const unsigned int ParameterIndex = MapIndex2D(X, StrideX, Y);
 
 	const Wave_PrecisionType DoubleCurrent = 2.0 * Spacetime[MapIndex3D(T,StrideT,X,StrideX,Y)];
@@ -66,5 +64,31 @@ Wave_PrecisionType Wave_Update2D( //Vaguely worth it on the 1650 and slower on t
 	
 	const Wave_PrecisionType Next = (Center+Up+Down+Left+Right) * SpacetimeDelta * WaveVelocity[ParameterIndex]; //TODO get WaveVelocity from parameters
 	
+	return (DoubleCurrent - Previous + Next) * TransferEfficiency[ParameterIndex]; //TODO parameterized clamping
+}
+
+Wave_PrecisionType Wave_Update2D_Fast( //Not actually faster??
+	const Wave_PrecisionType* WaveVelocity,
+	const Wave_PrecisionType* TransferEfficiency,
+	const Wave_PrecisionType* Spacetime,
+	const          int X,
+	const unsigned int StrideX,
+	const unsigned int MaxX,
+	const          int Y,
+	const unsigned int StrideY,
+	const unsigned int MaxY,
+	const          int T,
+	const unsigned int MaxT,
+	const Wave_PrecisionType SpacetimeDelta
+) {
+	const unsigned int ParameterIndex = MapIndex2D(X, MaxY, Y);
+	const Wave_PrecisionType DoubleCurrent = 2.0 * Spacetime[MapIndex3D(X,StrideX,Y,StrideY,T)];
+	const Wave_PrecisionType Previous = Spacetime[MapIndex3D(X,StrideX,Y,StrideY,WrapBottom(T-1,MaxT))];
+	const Wave_PrecisionType Center = -2.0 * DoubleCurrent;
+	const Wave_PrecisionType Up = Spacetime[MapIndex3D(WrapBottom(X-1,MaxX),StrideX,Y,StrideY,T)];
+	const Wave_PrecisionType Down = Spacetime[MapIndex3D(WrapTop(X+1,MaxX),StrideX,Y,StrideY,T)];
+	const Wave_PrecisionType Left = Spacetime[MapIndex3D(X,StrideX,WrapBottom(Y-1,MaxY),StrideY,T)];
+	const Wave_PrecisionType Right = Spacetime[MapIndex3D(X,StrideX,WrapTop(Y+1,MaxY),StrideY,T)];
+	const Wave_PrecisionType Next = (Center+Up+Down+Left+Right) * SpacetimeDelta * WaveVelocity[ParameterIndex]; //TODO get WaveVelocity from parameters
 	return (DoubleCurrent - Previous + Next) * TransferEfficiency[ParameterIndex]; //TODO parameterized clamping
 }

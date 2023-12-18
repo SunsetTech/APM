@@ -28,3 +28,18 @@ Wave_PrecisionType Wave_Update2D(
 	const unsigned int MaxY,
 	const Wave_PrecisionType SpacetimeDelta
 );
+
+Wave_PrecisionType Wave_Update2D_Fast(
+	const Wave_PrecisionType* WaveVelocity,
+	const Wave_PrecisionType* TransferEfficiency,
+	const Wave_PrecisionType* Spacetime,
+	const          int X,
+	const unsigned int StrideX,
+	const unsigned int MaxX,
+	const          int Y,
+	const unsigned int StrideY,
+	const unsigned int MaxY,
+	const          int T,
+	const unsigned int MaxT,
+	const Wave_PrecisionType SpacetimeDelta
+);

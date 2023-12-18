@@ -86,7 +86,7 @@ int main() {
 	TestBundle.Outputs.push_back({0,TestBundle.FiberLength-2,(float)TestBundle.FiberLength-2.0f});
 	TestScene.Objects.push_back(&TestBundle);*/
 	
-	cl_uint TestStructureBounds[] = {256, 256};
+	cl_uint TestStructureBounds[] = {1024, 1024};
 	APM::Scene::Object::WaveStructure TestStructure(2, TestStructureBounds);
 	cl_uint Cursor[2];
 	for (cl_uint X = 0; X < TestStructureBounds[0]; X++) {
@@ -161,7 +161,7 @@ int main() {
 	//float* DebugBuffer = new float[LengthInSamples];
 	long long StartTime = Utils::Time::Milliseconds();
 	TestEngine.EnqueueJob(
-		TestScene, 1.0f/(float)SampleRate, LengthInSamples, 64, 
+		TestScene, 1.0f/(float)SampleRate, LengthInSamples, 2, 
 		{
 			/*(APM::Engine::Output){
 				.Object = 0, .Plug = 0,

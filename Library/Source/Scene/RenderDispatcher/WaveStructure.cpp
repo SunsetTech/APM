@@ -215,7 +215,7 @@ namespace APM::Scene::RenderDispatcher {
 			for (cl_uint Dimension = 0; Dimension < this->Structure->Dimensions; Dimension++) {
 				ComputationWorkSize[Dimension] = this->Structure->SpatialBounds[Dimension];
 			}
-			size_t ComputationGroupSize[] = {16,16};
+			size_t ComputationGroupSize[] = {8,8};
 			Err = clEnqueueNDRangeKernel(
 				this->Queue,
 				this->ComputationKernel,
