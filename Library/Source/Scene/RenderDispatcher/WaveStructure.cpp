@@ -215,11 +215,12 @@ namespace APM::Scene::RenderDispatcher {
 			for (cl_uint Dimension = 0; Dimension < this->Structure->Dimensions; Dimension++) {
 				ComputationWorkSize[Dimension] = this->Structure->SpatialBounds[Dimension];
 			}
+			size_t ComputationGroupSize[] = {16,16};
 			Err = clEnqueueNDRangeKernel(
 				this->Queue,
 				this->ComputationKernel,
 				this->Structure->Dimensions,
-				nullptr, ComputationWorkSize, nullptr,
+				nullptr, ComputationWorkSize, ComputationGroupSize,
 				1, &StartEvent, &ComputationEvent
 			); 
 			CLUtils::PrintAndHaltIfError("Enqueuing Computation kernel", Err);
