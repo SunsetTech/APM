@@ -42,5 +42,5 @@ cl_uint MapIndex3D(
 	const cl_int Y, const cl_uint MultiplierY,
 	const cl_int Z
 ) {
-	return X * MultiplierX + Y * MultiplierY + Z;
+	return mad24(X, (cl_int)MultiplierX, mad24(Y, (cl_int)MultiplierY, Z));
 }

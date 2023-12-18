@@ -45,12 +45,12 @@ Wave_PrecisionType Wave_Update2D(
 ) {
 	
 	const unsigned int MaxT = SpacetimeBounds[0];
-	               int T = Wrap(Position[0], MaxT);
+	const          int T = Wrap(Position[0], MaxT);
 	const unsigned int StrideT = SpacetimeBounds[1]*SpacetimeBounds[2];
-	               int X = Position[1];
+	const          int X = Position[1];
 	const unsigned int MaxX = SpacetimeBounds[1];
 	const unsigned int StrideX = SpacetimeBounds[2];
-	               int Y = Position[2];
+	const          int Y = Position[2];
 	const unsigned int MaxY = SpacetimeBounds[2];
 	
 	const unsigned int ParameterIndex = MapIndexND(2, Position+1, SpacetimeBounds+1);
