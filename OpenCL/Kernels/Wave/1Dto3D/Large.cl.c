@@ -20,26 +20,14 @@ __kernel __attribute__((vec_type_hint(Wave_PrecisionType))) void Wave_1Dto3D_Lar
 		get_global_id(2),
 	};
 	
-	Wave_PrecisionType Next;
-	if (SpatialDimensions == 2) {
-		Next = Wave_Update2D(
-			WaveVelocity,
-			TransferEfficiency,
-			Spacetime,
-			CellPosition,
-			SpacetimeBounds,
-			SpacetimeDelta
-		);
-	} else {
-		Next = Wave_UpdateND(
-			SpatialDimensions,
-			WaveVelocity,
-			TransferEfficiency,
-			Spacetime,
-			CellPosition, SpacetimeBounds,
-			SpacetimeDelta
-		);
-	}
+	Wave_PrecisionType Next = Wave_UpdateND(
+		SpatialDimensions,
+		WaveVelocity,
+		TransferEfficiency,
+		Spacetime,
+		CellPosition, SpacetimeBounds,
+		SpacetimeDelta
+	);
 	
 	CellPosition[0]++;
 	Spacetime[MapIndexND(SpatialDimensions+1, CellPosition, SpacetimeBounds)] = Next;
